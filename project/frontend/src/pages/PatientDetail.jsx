@@ -10,6 +10,12 @@ import {
 } from "../services/clinicalService";
 import { getApiError } from "../services/api";
 import { getPatient } from "../services/patientService";
+import {
+  deletePatientPhoto,
+  getPatientPhotos,
+  getPhotoUrl,
+  uploadPatientPhoto,
+} from "../services/photoService";
 
 const historySteps = [
   "Antecedentes",
@@ -109,6 +115,17 @@ const clinicalDefaults = {
 function formatDate(value) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("es-UY").format(new Date(value));
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-UY", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function initials(name = "") {
@@ -212,6 +229,13 @@ export default function PatientDetail() {
   const [clinicalLoaded, setClinicalLoaded] = useState(false);
   const [clinicalDirty, setClinicalDirty] = useState(false);
   const [savingClinical, setSavingClinical] = useState(false);
+  const [photos, setPhotos] = useState([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photoForm, setPhotoForm] = useState({
+    view: "Frontal",
+    takenAt: new Date().toISOString().slice(0, 10),
+    notes: "",
+  });
 
   const loadPatient = useCallback(async () => {
     try {
@@ -228,6 +252,19 @@ export default function PatientDetail() {
   useEffect(() => {
     Promise.resolve().then(loadPatient);
   }, [loadPatient]);
+
+  const loadPhotos = useCallback(async () => {
+    try {
+      const data = await getPatientPhotos(id);
+      setPhotos(data);
+    } catch (err) {
+      setError(getApiError(err, "No se pudieron cargar las fotos"));
+    }
+  }, [id]);
+
+  useEffect(() => {
+    Promise.resolve().then(loadPhotos);
+  }, [loadPhotos]);
 
   useEffect(() => {
     Promise.resolve().then(() => setClinicalLoaded(false));
@@ -353,6 +390,49 @@ export default function PatientDetail() {
       await loadPatient();
     } catch (err) {
       setError(getApiError(err, "No se pudo eliminar el area"));
+    }
+  };
+
+  const updatePhotoForm = (field, value) => {
+    setPhotoForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const uploadPhotos = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      setUploadingPhotos(true);
+      setError("");
+      const uploaded = [];
+
+      for (const file of files) {
+        const photo = await uploadPatientPhoto(id, {
+          file,
+          view: photoForm.view,
+          notes: photoForm.notes,
+          takenAt: photoForm.takenAt ? `${photoForm.takenAt}T00:00:00` : "",
+        });
+        uploaded.push(photo);
+      }
+
+      setPhotos((current) => [...uploaded, ...current]);
+      setPhotoForm((current) => ({ ...current, notes: "" }));
+    } catch (err) {
+      setError(getApiError(err, "No se pudieron subir las fotos"));
+    } finally {
+      setUploadingPhotos(false);
+      event.target.value = "";
+    }
+  };
+
+  const removePhoto = async (photoId) => {
+    try {
+      setError("");
+      await deletePatientPhoto(id, photoId);
+      setPhotos((current) => current.filter((photo) => photo.id !== photoId));
+    } catch (err) {
+      setError(getApiError(err, "No se pudo eliminar la foto"));
     }
   };
 
@@ -487,12 +567,69 @@ export default function PatientDetail() {
             {activeSection === "Evolucion fotos" && (
               <>
                 <h2>Evolucion fotos</h2>
-                <div className="media-grid">
-                  <div className="upload-slot">Frontal</div>
-                  <div className="upload-slot">Superior</div>
-                  <div className="upload-slot">Temporal izquierda</div>
-                  <div className="upload-slot">Temporal derecha</div>
+                <div className="photo-upload-panel">
+                  <label className="field">
+                    <span>Vista</span>
+                    <select
+                      value={photoForm.view}
+                      onChange={(event) => updatePhotoForm("view", event.target.value)}
+                    >
+                      <option>Frontal</option>
+                      <option>Superior</option>
+                      <option>Temporal izquierda</option>
+                      <option>Temporal derecha</option>
+                      <option>Posterior</option>
+                      <option>Otra</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Fecha</span>
+                    <input
+                      type="date"
+                      value={photoForm.takenAt}
+                      onChange={(event) => updatePhotoForm("takenAt", event.target.value)}
+                    />
+                  </label>
+                  <label className="field wide">
+                    <span>Notas</span>
+                    <textarea
+                      rows="3"
+                      value={photoForm.notes}
+                      onChange={(event) => updatePhotoForm("notes", event.target.value)}
+                    />
+                  </label>
+                  <label className="photo-dropzone">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      multiple
+                      onChange={uploadPhotos}
+                      disabled={uploadingPhotos}
+                    />
+                    <strong>{uploadingPhotos ? "Subiendo fotos..." : "Agregar fotos"}</strong>
+                    <span>Selecciona una o varias imagenes JPG, PNG o WebP</span>
+                  </label>
                 </div>
+
+                {photos.length === 0 ? (
+                  <p className="empty-state">Todavia no hay fotos de evolucion cargadas.</p>
+                ) : (
+                  <div className="photo-gallery">
+                    {photos.map((photo) => (
+                      <article className="photo-card" key={photo.id}>
+                        <img src={getPhotoUrl(photo.url)} alt={photo.view || "Foto de evolucion"} />
+                        <div>
+                          <strong>{photo.view || "Foto clinica"}</strong>
+                          <span>{formatDateTime(photo.taken_at || photo.created_at)}</span>
+                          {photo.notes && <p>{photo.notes}</p>}
+                        </div>
+                        <button className="danger" onClick={() => removePhoto(photo.id)}>
+                          Eliminar
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </>
             )}
             {activeSection === "Procedimientos" && (

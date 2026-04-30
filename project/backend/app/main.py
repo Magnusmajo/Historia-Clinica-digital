@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import Base, engine
@@ -11,6 +14,7 @@ from app.routes import (
     implant_area,
     module_record,
     patient,
+    patient_photo,
     stats,
 )
 
@@ -21,9 +25,11 @@ from app.models.clinical_note import ClinicalNote
 from app.models.implant_area import ImplantArea
 from app.models.module_record import ModuleRecord
 from app.models.patient import Patient
+from app.models.patient_photo import PatientPhoto
 
 Base.metadata.create_all(bind=engine)
 settings = get_settings()
+Path("uploads").mkdir(exist_ok=True)
 
 app = FastAPI(title="Historia Clinica Digital", version="1.0.0")
 
@@ -36,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(patient.router)
+app.include_router(patient_photo.router)
 app.include_router(appointment.router)
 app.include_router(consultation.router)
 app.include_router(implant_area.router)
@@ -43,6 +50,8 @@ app.include_router(module_record.router)
 app.include_router(clinical_note.router)
 app.include_router(google_calendar.router)
 app.include_router(stats.router)
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/health")

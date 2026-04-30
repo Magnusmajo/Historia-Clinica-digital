@@ -9,6 +9,7 @@ project/backend/venv/
 project/backend/*.db
 project/backend/credentials.json
 project/backend/token.json
+project/backend/uploads/
 
 node_modules/
 dist/
