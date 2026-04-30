@@ -1,16 +1,21 @@
 export default function Header() {
   return (
-    <div
-      style={{
-        height: "60px",
-        background: "#020617",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 20px",
-        borderBottom: "1px solid #1e293b",
-      }}
-    >
-      <h3>Clínica Capilar</h3>
-    </div>
+    <header className="topbar">
+      <div>
+        <p className="eyebrow">Historia clinica</p>
+        <h1>Panel medico</h1>
+      </div>
+
+      <div className="topbar-actions">
+        <span className="date-pill">15/05/2026</span>
+        <div className="doctor-chip">
+          <span className="avatar avatar-small">AR</span>
+          <div>
+            <strong>Dr. Alexis Rodriguez</strong>
+            <small>Medico</small>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 }

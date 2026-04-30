@@ -1,11 +1,736 @@
+:root {
+  color: #172033;
+  background: #f4f7fb;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
-  font-family: sans-serif;
 }
 
 body {
-  background-color: #0f172a;
-  color: white;
+  margin: 0;
+  min-width: 1180px;
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-content {
+  padding: 18px 22px 28px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  width: 245px;
+  height: 100vh;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 18px;
+  color: #f8fbff;
+  background: linear-gradient(180deg, #081224 0%, #0c1a31 100%);
+  box-shadow: 8px 0 22px rgba(15, 23, 42, 0.14);
+}
+
+.brand,
+.doctor-chip,
+.clinic-chip,
+.patient-header {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.brand h2 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 3px;
+}
+
+.brand span,
+.clinic-chip small,
+.doctor-chip small {
+  display: block;
+  font-size: 12px;
+  color: #8fa2bd;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 7px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: #cfdbeb;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nav-item.active {
+  color: #fff;
+  background: #2874f0;
+  box-shadow: 0 8px 18px rgba(40, 116, 240, 0.28);
+}
+
+.nav-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
+.new-patient-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: auto;
+  border-radius: 7px;
+  background: #2874f0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.clinic-chip {
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.avatar,
+.patient-photo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, #334155, #0284c7);
+  font-weight: 800;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 12px;
+}
+
+.avatar-small {
+  width: 38px;
+  height: 38px;
+}
+
+.topbar {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom: 1px solid #e5ebf3;
+  background: #fff;
+}
+
+.topbar h1,
+.topbar p {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 20px;
+}
+
+.eyebrow {
+  margin-bottom: 5px;
+  color: #6d7b91;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.date-pill {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.doctor-chip {
+  gap: 10px;
+}
+
+.doctor-chip strong,
+.clinic-chip strong {
+  display: block;
+  font-size: 13px;
+}
+
+.clinical-screen {
+  display: grid;
+  grid-template-columns: 250px minmax(680px, 1fr);
+  gap: 16px;
+}
+
+.patient-column {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.back-button {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: #52637a;
+  font-weight: 700;
+}
+
+.patient-card,
+.history-panel,
+.selected-areas {
+  border: 1px solid #e4eaf2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.patient-card {
+  padding: 18px;
+}
+
+.patient-header {
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.patient-photo {
+  width: 64px;
+  height: 64px;
+  font-size: 18px;
+}
+
+.patient-header h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.patient-header p {
+  margin: 0;
+  color: #5c6c82;
+  font-size: 13px;
+}
+
+.patient-data {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.patient-data div,
+.previous-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.patient-data dt {
+  color: #718096;
+  font-size: 13px;
+}
+
+.patient-data dd {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.patient-card.compact {
+  display: grid;
+  gap: 8px;
+}
+
+.patient-card.compact button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #40526a;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.patient-card.compact button.selected {
+  border-left: 3px solid #2874f0;
+  background: #edf5ff;
+  color: #2874f0;
+}
+
+.patient-card h3,
+.implant-controls h3,
+.selected-areas h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.previous-row {
+  min-height: 28px;
+  color: #5c6c82;
+  font-size: 12px;
+}
+
+.history-panel {
+  min-width: 0;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(78px, 1fr));
+  gap: 6px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: #7a8797;
+  text-align: center;
+}
+
+.step::before {
+  position: absolute;
+  top: 14px;
+  left: -50%;
+  width: 100%;
+  height: 1px;
+  background: #dbe4ef;
+  content: "";
+}
+
+.step:first-child::before {
+  display: none;
+}
+
+.step span {
+  z-index: 1;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef3f9;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.step p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.step.active {
+  color: #2874f0;
+}
+
+.step.active span {
+  color: #fff;
+  background: #2874f0;
+}
+
+.implant-workspace {
+  display: grid;
+  grid-template-columns: minmax(520px, 1fr) 330px;
+  gap: 14px;
+  padding: 16px;
+}
+
+.implant-main,
+.implant-controls {
+  border: 1px solid #e4eaf2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.implant-main {
+  padding: 14px;
+}
+
+.section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #e4eaf2;
+  border-radius: 7px;
+}
+
+.segmented-control button {
+  min-height: 34px;
+  border: 0;
+  padding: 0 16px;
+  background: #fff;
+  color: #53647a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.segmented-control button.active {
+  background: #2874f0;
+  color: #fff;
+}
+
+.scalp-board {
+  position: relative;
+  display: grid;
+  min-height: 420px;
+  margin-top: 14px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fbfdff, #f4f8fd);
+}
+
+.tool-rail {
+  position: absolute;
+  left: 14px;
+  top: 96px;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+}
+
+.tool-rail button {
+  width: 64px;
+  min-height: 46px;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #52637a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tool-rail button.active {
+  border-color: #2874f0;
+  background: #2874f0;
+  color: #fff;
+}
+
+.head-model {
+  position: relative;
+  width: 320px;
+  height: 370px;
+}
+
+.hair-shape {
+  position: absolute;
+  inset: 16px 28px 76px;
+  border-radius: 48% 48% 38% 38%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.14), transparent 16%),
+    radial-gradient(circle at 66% 18%, rgba(255, 255, 255, 0.1), transparent 14%),
+    radial-gradient(circle at 52% 42%, #4a372c 0 12%, transparent 13%),
+    repeating-radial-gradient(circle at 50% 25%, #33241d 0 8px, #463027 9px 15px);
+  box-shadow: inset 0 -20px 26px rgba(0, 0, 0, 0.24);
+}
+
+.face-shape {
+  position: absolute;
+  left: 55px;
+  right: 55px;
+  bottom: 0;
+  height: 188px;
+  border-radius: 36% 36% 48% 48%;
+  background: linear-gradient(180deg, #f0c8ad, #d9a889);
+  box-shadow: inset 0 18px 26px rgba(86, 49, 34, 0.12);
+}
+
+.implant-zone {
+  position: absolute;
+  z-index: 3;
+  border: 2px dashed #2874f0;
+  background: rgba(92, 111, 186, 0.34);
+  box-shadow: inset 0 0 24px rgba(40, 116, 240, 0.12);
+}
+
+.frontal-zone {
+  left: 62px;
+  top: 145px;
+  width: 196px;
+  height: 74px;
+  border-radius: 46% 46% 52% 52%;
+}
+
+.left-entry,
+.right-entry {
+  top: 92px;
+  width: 42px;
+  height: 78px;
+  border-radius: 50%;
+}
+
+.left-entry {
+  left: 54px;
+  transform: rotate(20deg);
+}
+
+.right-entry {
+  right: 54px;
+  transform: rotate(-20deg);
+}
+
+.mid-zone {
+  left: 96px;
+  top: 80px;
+  width: 128px;
+  height: 90px;
+  border-radius: 46%;
+}
+
+.vertex-zone {
+  left: 118px;
+  top: 48px;
+  width: 84px;
+  height: 70px;
+  border-radius: 50%;
+}
+
+.crown-zone {
+  left: 108px;
+  top: 26px;
+  width: 104px;
+  height: 76px;
+  border-radius: 50%;
+}
+
+.scalp-board.superior .face-shape {
+  display: none;
+}
+
+.scalp-board.superior .hair-shape {
+  inset: 32px 20px 34px;
+  border-radius: 50%;
+}
+
+.hint,
+.info-note {
+  margin: 12px 0 0;
+  border-radius: 7px;
+  background: #eaf3ff;
+  color: #4170a8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hint {
+  padding: 11px 14px;
+}
+
+.implant-controls {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 18px;
+}
+
+.check-list {
+  display: grid;
+  gap: 12px;
+}
+
+.check-list label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #27364a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.check-list input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2874f0;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  color: #27364a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: #1f2c3d;
+  background: #fff;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.inline-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inline-input small {
+  color: #53647a;
+  font-weight: 700;
+}
+
+.info-note {
+  padding: 10px 12px;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.panel-actions button,
+.danger {
+  min-height: 38px;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  padding: 0 16px;
+  background: #fff;
+  color: #34455c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.panel-actions .primary {
+  border-color: #2874f0;
+  background: #2874f0;
+  color: #fff;
+}
+
+.selected-areas {
+  grid-column: 1 / -1;
+  padding: 16px;
+}
+
+.selected-area-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 84px;
+  border-top: 1px solid #edf1f6;
+  padding: 14px 0 0;
+}
+
+.selected-area-card p,
+.empty-state {
+  margin: 4px 0 0;
+  color: #607187;
+  font-size: 13px;
+}
+
+.mini-scalp {
+  width: 72px;
+  height: 58px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 20%, #34231d 0 34%, transparent 35%),
+    linear-gradient(180deg, rgba(92, 111, 186, 0.44), rgba(92, 111, 186, 0.2)),
+    #f0c8ad;
+}
+
+.danger {
+  margin-left: auto;
+  border-color: #ffc9c9;
+  color: #e25151;
+}
+
+.screen-state {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  color: #52637a;
+  font-weight: 800;
 }

@@ -3,11 +3,11 @@ import Header from "./Header";
 
 export default function MainLayout({ children }) {
   return (
-    <div style={{ display: "flex" }}>
+    <div className="app-shell">
       <Sidebar />
-      <div style={{ flex: 1 }}>
+      <div className="app-main">
         <Header />
-        <div style={{ padding: "20px" }}>{children}</div>
+        <main className="app-content">{children}</main>
       </div>
     </div>
   );

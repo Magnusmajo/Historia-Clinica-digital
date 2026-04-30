@@ -1,21 +1,51 @@
 import { Link } from "react-router-dom";
 
 export default function Sidebar() {
-  return (
-    <div
-      style={{
-        width: "250px",
-        height: "100vh",
-        background: "#020617",
-        padding: "20px",
-      }}
-    >
-      <h2 style={{ marginBottom: "30px" }}>ELARA</h2>
+  const menu = [
+    ["Dashboard", "/"],
+    ["Pacientes", "/patients"],
+    ["Agenda", "/"],
+    ["Consultas", "/"],
+    ["Procedimientos", "/"],
+    ["Evolucion", "/"],
+    ["Reportes", "/"],
+    ["Configuracion", "/"],
+  ];
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        <Link to="/" style={{ color: "white" }}>Dashboard</Link>
-        <Link to="/patients" style={{ color: "white" }}>Pacientes</Link>
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-mark">E</div>
+        <div>
+          <h2>ELARA</h2>
+          <span>Implante capilar</span>
+        </div>
+      </div>
+
+      <nav className="sidebar-nav">
+        {menu.map(([label, to]) => (
+          <Link
+            key={label}
+            to={to}
+            className={label === "Pacientes" ? "nav-item active" : "nav-item"}
+          >
+            <span className="nav-icon">{label.slice(0, 1)}</span>
+            {label}
+          </Link>
+        ))}
       </nav>
-    </div>
+
+      <Link to="/patients/new" className="new-patient-button">
+        + Nuevo paciente
+      </Link>
+
+      <div className="clinic-chip">
+        <span className="avatar">CE</span>
+        <div>
+          <strong>Clinica Elara</strong>
+          <small>Admin</small>
+        </div>
+      </div>
+    </aside>
   );
 }
