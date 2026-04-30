@@ -3,7 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app.routes import patient, consultation, implant_area
-from app.models import *  # carga todos los modelos
+
+# importar modelos explícitamente
+from app.models.patient import Patient
+from app.models.consultation import Consultation
+from app.models.implant_area import ImplantArea
 
 Base.metadata.create_all(bind=engine)
 
