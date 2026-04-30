@@ -1,0 +1,174 @@
+import { useMemo, useState } from "react";
+
+const pageCopy = {
+  agenda: {
+    eyebrow: "Planificacion diaria",
+    title: "Agenda",
+    empty: "No hay eventos agendados.",
+    action: "Agregar evento",
+    fields: ["Fecha", "Paciente", "Motivo", "Estado"],
+    defaults: {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Paciente: "",
+      Motivo: "Consulta capilar",
+      Estado: "Pendiente",
+    },
+  },
+  consultations: {
+    eyebrow: "Atencion clinica",
+    title: "Consultas",
+    empty: "No hay consultas manuales registradas.",
+    action: "Registrar consulta",
+    fields: ["Fecha", "Paciente", "Resumen", "Profesional"],
+    defaults: {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Paciente: "",
+      Resumen: "",
+      Profesional: "Dr. Alexis Rodriguez",
+    },
+  },
+  procedures: {
+    eyebrow: "Actividad quirurgica",
+    title: "Procedimientos",
+    empty: "No hay procedimientos cargados.",
+    action: "Agregar procedimiento",
+    fields: ["Fecha", "Paciente", "Procedimiento", "Estado"],
+    defaults: {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Paciente: "",
+      Procedimiento: "Implante capilar",
+      Estado: "Planificado",
+    },
+  },
+  evolution: {
+    eyebrow: "Seguimiento",
+    title: "Evolucion",
+    empty: "No hay controles de evolucion.",
+    action: "Agregar control",
+    fields: ["Fecha", "Paciente", "Control", "Notas"],
+    defaults: {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Paciente: "",
+      Control: "Seguimiento",
+      Notas: "",
+    },
+  },
+  reports: {
+    eyebrow: "Indicadores",
+    title: "Reportes",
+    empty: "No hay reportes guardados.",
+    action: "Guardar reporte",
+    fields: ["Periodo", "Indicador", "Resultado", "Notas"],
+    defaults: {
+      Periodo: new Date().toISOString().slice(0, 7),
+      Indicador: "Pacientes activos",
+      Resultado: "",
+      Notas: "",
+    },
+  },
+  settings: {
+    eyebrow: "Administracion",
+    title: "Configuracion",
+    empty: "No hay configuraciones personalizadas.",
+    action: "Guardar ajuste",
+    fields: ["Parametro", "Valor", "Responsable", "Notas"],
+    defaults: {
+      Parametro: "Clinica",
+      Valor: "Clinica Elara",
+      Responsable: "Admin",
+      Notas: "",
+    },
+  },
+};
+
+function getStoredRecords(type) {
+  try {
+    return JSON.parse(localStorage.getItem(`elara:${type}`)) || [];
+  } catch {
+    return [];
+  }
+}
+
+export default function OperationalPage({ type }) {
+  const config = pageCopy[type];
+  const [records, setRecords] = useState(() => getStoredRecords(type));
+  const [form, setForm] = useState(config.defaults);
+
+  const completed = useMemo(() => records.length, [records.length]);
+
+  const updateForm = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveRecord = (event) => {
+    event.preventDefault();
+    const nextRecords = [{ id: crypto.randomUUID(), ...form }, ...records];
+    setRecords(nextRecords);
+    localStorage.setItem(`elara:${type}`, JSON.stringify(nextRecords));
+    setForm(config.defaults);
+  };
+
+  const deleteRecord = (id) => {
+    const nextRecords = records.filter((record) => record.id !== id);
+    setRecords(nextRecords);
+    localStorage.setItem(`elara:${type}`, JSON.stringify(nextRecords));
+  };
+
+  return (
+    <section className="page-stack">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">{config.eyebrow}</p>
+          <h2>{config.title}</h2>
+        </div>
+        <div className="module-counter">
+          <strong>{completed}</strong>
+          <span>registros</span>
+        </div>
+      </div>
+
+      <form className="form-panel" onSubmit={saveRecord}>
+        <div className="form-grid">
+          {config.fields.map((field) => (
+            <label className="field" key={field}>
+              <span>{field}</span>
+              <input
+                value={form[field] || ""}
+                onChange={(event) => updateForm(field, event.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+        <div className="form-actions">
+          <button className="primary-action" type="submit">
+            {config.action}
+          </button>
+        </div>
+      </form>
+
+      <article className="data-panel">
+        <div className="panel-header">
+          <h3>Registros</h3>
+        </div>
+        {records.length === 0 ? (
+          <p className="empty-state">{config.empty}</p>
+        ) : (
+          <div className="module-list">
+            {records.map((record) => (
+              <div className="module-row" key={record.id}>
+                <div>
+                  <strong>{record[config.fields[1]] || record[config.fields[0]]}</strong>
+                  <p>{record[config.fields[2]] || "-"}</p>
+                </div>
+                <span>{record[config.fields[0]]}</span>
+                <button className="danger" onClick={() => deleteRecord(record.id)}>
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
+    </section>
+  );
+}

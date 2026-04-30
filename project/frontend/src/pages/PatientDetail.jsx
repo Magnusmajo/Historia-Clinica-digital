@@ -29,6 +29,81 @@ const availableZones = [
   "Zona media",
 ];
 
+const clinicalDefaults = {
+  0: {
+    title: "Antecedentes",
+    fields: {
+      "Antecedentes familiares": "",
+      "Antecedentes medicos": "",
+      Medicacion: "",
+      Alergias: "",
+    },
+  },
+  1: {
+    title: "Historia de alopecia",
+    fields: {
+      "Inicio de caida": "",
+      "Evolucion temporal": "",
+      "Tratamientos previos": "",
+      "Respuesta observada": "",
+    },
+  },
+  2: {
+    title: "Evaluacion general",
+    fields: {
+      "Estado general": "",
+      "Habitos relevantes": "",
+      "Contraindicaciones": "",
+      "Observaciones generales": "",
+    },
+  },
+  3: {
+    title: "Evaluacion capilar",
+    fields: {
+      "Densidad donante": "",
+      "Calibre del pelo": "",
+      "Elasticidad del cuero cabelludo": "",
+      "Miniaturizacion": "",
+    },
+  },
+  4: {
+    title: "Patron y sintomas",
+    fields: {
+      "Patron de alopecia": "",
+      Sintomas: "",
+      "Grado Norwood/Ludwig": "",
+      "Prioridad estetica": "",
+    },
+  },
+  6: {
+    title: "Diagnostico y plan",
+    fields: {
+      Diagnostico: "",
+      "Plan terapeutico": "",
+      "Cantidad estimada de sesiones": "",
+      "Indicaciones": "",
+    },
+  },
+  7: {
+    title: "Consentimiento",
+    fields: {
+      "Consentimiento informado": "Pendiente",
+      "Riesgos explicados": "",
+      "Expectativas conversadas": "",
+      "Firma/validacion": "",
+    },
+  },
+  8: {
+    title: "Observaciones",
+    fields: {
+      "Notas internas": "",
+      "Proximo control": "",
+      "Alertas clinicas": "",
+      "Resumen final": "",
+    },
+  },
+};
+
 function formatDate(value) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("es-UY").format(new Date(value));
@@ -44,6 +119,112 @@ function initials(name = "") {
     .toUpperCase();
 }
 
+function getStoredClinicalNotes(patientId) {
+  try {
+    return JSON.parse(localStorage.getItem(`elara:clinical:${patientId}`)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function HumanScalpMap({ activeZones, view }) {
+  const isSuperior = view === "superior";
+
+  return (
+    <svg
+      className={`human-scalp ${view}`}
+      viewBox="0 0 420 470"
+      role="img"
+      aria-label="Cabeza humana para planificacion capilar"
+    >
+      <defs>
+        <linearGradient id="skinTone" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#f3c5a8" />
+          <stop offset="100%" stopColor="#d59a7d" />
+        </linearGradient>
+        <radialGradient id="hairTexture" cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#5b4032" />
+          <stop offset="55%" stopColor="#3b2a22" />
+          <stop offset="100%" stopColor="#211713" />
+        </radialGradient>
+        <pattern id="follicles" width="18" height="18" patternUnits="userSpaceOnUse">
+          <circle cx="4" cy="5" r="1.5" fill="#6f4b3a" opacity="0.45" />
+          <circle cx="13" cy="10" r="1.2" fill="#2a1d18" opacity="0.35" />
+          <circle cx="8" cy="15" r="1" fill="#8b6350" opacity="0.32" />
+        </pattern>
+      </defs>
+
+      <rect width="420" height="470" rx="18" fill="#fbfdff" />
+      {isSuperior ? (
+        <>
+          <ellipse cx="210" cy="230" rx="132" ry="170" fill="url(#skinTone)" />
+          <ellipse cx="210" cy="205" rx="146" ry="176" fill="url(#hairTexture)" />
+          <ellipse cx="210" cy="205" rx="146" ry="176" fill="url(#follicles)" opacity="0.55" />
+          <ellipse cx="210" cy="390" rx="52" ry="26" fill="#d39173" opacity="0.4" />
+        </>
+      ) : (
+        <>
+          <path
+            d="M92 215 C88 118 135 52 210 52 C285 52 332 118 328 215 C326 322 280 414 210 414 C140 414 94 322 92 215 Z"
+            fill="url(#skinTone)"
+          />
+          <path
+            d="M96 191 C91 101 144 42 210 42 C276 42 329 101 324 191 C291 164 256 150 210 150 C164 150 129 164 96 191 Z"
+            fill="url(#hairTexture)"
+          />
+          <path
+            d="M96 191 C91 101 144 42 210 42 C276 42 329 101 324 191 C291 164 256 150 210 150 C164 150 129 164 96 191 Z"
+            fill="url(#follicles)"
+            opacity="0.5"
+          />
+          <path d="M154 283 C184 302 235 302 266 283" fill="none" stroke="#9f6f5c" strokeWidth="5" strokeLinecap="round" opacity="0.55" />
+          <ellipse cx="155" cy="222" rx="13" ry="8" fill="#573a2d" opacity="0.55" />
+          <ellipse cx="265" cy="222" rx="13" ry="8" fill="#573a2d" opacity="0.55" />
+          <path d="M204 226 C196 258 198 274 210 278 C222 274 224 258 216 226" fill="#cd9277" opacity="0.55" />
+        </>
+      )}
+
+      {activeZones.has("Linea frontal") && (
+        <path
+          className="svg-zone"
+          d={isSuperior
+            ? "M105 270 C132 232 171 214 210 214 C249 214 288 232 315 270 C294 308 252 330 210 330 C168 330 126 308 105 270 Z"
+            : "M103 187 C136 158 172 145 210 145 C248 145 284 158 317 187 C306 223 265 242 210 242 C155 242 114 223 103 187 Z"}
+        />
+      )}
+      {activeZones.has("Entradas") && (
+        <>
+          <path
+            className="svg-zone"
+            d={isSuperior
+              ? "M80 183 C99 145 127 125 153 130 C146 171 128 206 98 229 C87 219 80 202 80 183 Z"
+              : "M98 147 C122 116 151 105 172 122 C160 155 143 181 111 195 C101 183 96 166 98 147 Z"}
+          />
+          <path
+            className="svg-zone"
+            d={isSuperior
+              ? "M340 183 C321 145 293 125 267 130 C274 171 292 206 322 229 C333 219 340 202 340 183 Z"
+              : "M322 147 C298 116 269 105 248 122 C260 155 277 181 309 195 C319 183 324 166 322 147 Z"}
+          />
+        </>
+      )}
+      {activeZones.has("Zona media") && (
+        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "205" : "112"} rx="74" ry="58" />
+      )}
+      {activeZones.has("Vertex") && (
+        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "150" : "85"} rx="52" ry="42" />
+      )}
+      {activeZones.has("Coronilla") && (
+        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "112" : "72"} rx="70" ry="52" />
+      )}
+
+      <text x="210" y="444" textAnchor="middle" className="map-caption">
+        {isSuperior ? "Vista superior" : "Vista frontal"}
+      </text>
+    </svg>
+  );
+}
+
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -53,10 +234,15 @@ export default function PatientDetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState("frontal");
+  const [activeSection, setActiveSection] = useState("Historia clinica");
+  const [activeStep, setActiveStep] = useState(5);
   const [zones, setZones] = useState(["Linea frontal", "Entradas"]);
   const [follicles, setFollicles] = useState("3500");
   const [notes, setNotes] = useState(
     "Alta densidad en linea frontal y entradas."
+  );
+  const [clinicalNotes, setClinicalNotes] = useState(() =>
+    getStoredClinicalNotes(id)
   );
 
   const loadPatient = useCallback(async () => {
@@ -97,6 +283,20 @@ export default function PatientDetail() {
         ? current.filter((item) => item !== zone)
         : [...current, zone]
     );
+  };
+
+  const updateClinicalField = (step, field, value) => {
+    setClinicalNotes((current) => {
+      const next = {
+        ...current,
+        [step]: {
+          ...(current[step] || {}),
+          [field]: value,
+        },
+      };
+      localStorage.setItem(`elara:clinical:${id}`, JSON.stringify(next));
+      return next;
+    });
   };
 
   const clearArea = () => {
@@ -215,11 +415,21 @@ export default function PatientDetail() {
         </article>
 
         <article className="patient-card compact">
-          <button>Datos generales</button>
-          <button className="selected">Historia clinica</button>
-          <button>Evolucion fotos</button>
-          <button>Procedimientos</button>
-          <button>Documentos</button>
+          {[
+            "Datos generales",
+            "Historia clinica",
+            "Evolucion fotos",
+            "Procedimientos",
+            "Documentos",
+          ].map((section) => (
+            <button
+              key={section}
+              className={activeSection === section ? "selected" : ""}
+              onClick={() => setActiveSection(section)}
+            >
+              {section}
+            </button>
+          ))}
         </article>
 
         <article className="patient-card compact">
@@ -238,21 +448,99 @@ export default function PatientDetail() {
       </section>
 
       <section className="history-panel">
-        <div className="stepper">
-          {historySteps.map((step, index) => (
-            <div
-              key={step}
-              className={index === 5 ? "step active" : "step"}
-              title={step}
-            >
-              <span>{index + 1}</span>
-              <p>{step}</p>
-            </div>
-          ))}
-        </div>
+        {activeSection === "Historia clinica" && (
+          <div className="stepper">
+            {historySteps.map((step, index) => (
+              <button
+                key={step}
+                className={index === activeStep ? "step active" : "step"}
+                title={step}
+                onClick={() => setActiveStep(index)}
+              >
+                <span>{index + 1}</span>
+                <p>{step}</p>
+              </button>
+            ))}
+          </div>
+        )}
 
         {error && <div className="alert error in-panel">{error}</div>}
 
+        {activeSection !== "Historia clinica" && (
+          <div className="clinical-tab-panel">
+            {activeSection === "Datos generales" && (
+              <>
+                <h2>Datos generales</h2>
+                <div className="read-grid">
+                  <span>Nombre</span><strong>{patient.name}</strong>
+                  <span>CI</span><strong>{patient.ci}</strong>
+                  <span>Telefono</span><strong>{patient.phone || "-"}</strong>
+                  <span>Email</span><strong>{patient.email || "-"}</strong>
+                  <span>Ocupacion</span><strong>{patient.occupation || "-"}</strong>
+                  <span>Residencia</span><strong>{patient.city || "-"}</strong>
+                </div>
+              </>
+            )}
+            {activeSection === "Evolucion fotos" && (
+              <>
+                <h2>Evolucion fotos</h2>
+                <div className="media-grid">
+                  <div className="upload-slot">Frontal</div>
+                  <div className="upload-slot">Superior</div>
+                  <div className="upload-slot">Temporal izquierda</div>
+                  <div className="upload-slot">Temporal derecha</div>
+                </div>
+              </>
+            )}
+            {activeSection === "Procedimientos" && (
+              <>
+                <h2>Procedimientos</h2>
+                <div className="procedure-summary">
+                  <strong>{selectedAreas.length}</strong>
+                  <span>areas planificadas</span>
+                  <strong>{selectedAreas.reduce((sum, area) => sum + (area.grafts || 0), 0)}</strong>
+                  <span>foliculos estimados</span>
+                </div>
+              </>
+            )}
+            {activeSection === "Documentos" && (
+              <>
+                <h2>Documentos</h2>
+                <div className="document-list">
+                  <div><strong>Consentimiento informado</strong><span>Pendiente</span></div>
+                  <div><strong>Plan quirurgico</strong><span>Generado desde areas guardadas</span></div>
+                  <div><strong>Ficha clinica</strong><span>Disponible en sistema</span></div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {activeSection === "Historia clinica" && activeStep !== 5 && (
+          <div className="clinical-form-panel">
+            <h2>{clinicalDefaults[activeStep].title}</h2>
+            <div className="form-grid">
+              {Object.keys(clinicalDefaults[activeStep].fields).map((field) => (
+                <label className="field" key={field}>
+                  <span>{field}</span>
+                  <textarea
+                    rows="4"
+                    value={
+                      clinicalNotes[activeStep]?.[field] ??
+                      clinicalDefaults[activeStep].fields[field]
+                    }
+                    onChange={(event) =>
+                      updateClinicalField(activeStep, field, event.target.value)
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <p className="hint">Los datos se guardan automaticamente en esta estacion local.</p>
+          </div>
+        )}
+
+        {activeSection === "Historia clinica" && activeStep === 5 && (
         <div className="implant-workspace">
           <div className="implant-main">
             <div className="section-title">
@@ -285,28 +573,7 @@ export default function PatientDetail() {
                 <button onClick={clearArea}>Limpiar</button>
               </div>
 
-              <div className="head-model" aria-label="Mapa capilar">
-                <div className="hair-shape" />
-                {activeZones.has("Linea frontal") && (
-                  <div className="implant-zone frontal-zone" />
-                )}
-                {activeZones.has("Entradas") && (
-                  <>
-                    <div className="implant-zone left-entry" />
-                    <div className="implant-zone right-entry" />
-                  </>
-                )}
-                {activeZones.has("Zona media") && (
-                  <div className="implant-zone mid-zone" />
-                )}
-                {activeZones.has("Vertex") && (
-                  <div className="implant-zone vertex-zone" />
-                )}
-                {activeZones.has("Coronilla") && (
-                  <div className="implant-zone crown-zone" />
-                )}
-                <div className="face-shape" />
-              </div>
+              <HumanScalpMap activeZones={activeZones} view={view} />
             </div>
 
             <p className="hint">
@@ -362,6 +629,7 @@ export default function PatientDetail() {
             </div>
           </aside>
         </div>
+        )}
       </section>
 
       <section className="selected-areas">

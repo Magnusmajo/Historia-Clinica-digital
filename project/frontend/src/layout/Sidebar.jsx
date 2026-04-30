@@ -1,15 +1,15 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
   const menu = [
     ["Dashboard", "/"],
     ["Pacientes", "/patients"],
-    ["Agenda", "/"],
-    ["Consultas", "/"],
-    ["Procedimientos", "/"],
-    ["Evolucion", "/"],
-    ["Reportes", "/"],
-    ["Configuracion", "/"],
+    ["Agenda", "/agenda"],
+    ["Consultas", "/consultations"],
+    ["Procedimientos", "/procedures"],
+    ["Evolucion", "/evolution"],
+    ["Reportes", "/reports"],
+    ["Configuracion", "/settings"],
   ];
 
   return (
@@ -24,20 +24,20 @@ export default function Sidebar() {
 
       <nav className="sidebar-nav">
         {menu.map(([label, to]) => (
-          <Link
+          <NavLink
             key={label}
             to={to}
-            className={label === "Pacientes" ? "nav-item active" : "nav-item"}
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             <span className="nav-icon">{label.slice(0, 1)}</span>
             {label}
-          </Link>
+          </NavLink>
         ))}
       </nav>
 
-      <Link to="/patients/new" className="new-patient-button">
+      <NavLink to="/patients/new" className="new-patient-button">
         + Nuevo paciente
-      </Link>
+      </NavLink>
 
       <div className="clinic-chip">
         <span className="avatar">CE</span>
