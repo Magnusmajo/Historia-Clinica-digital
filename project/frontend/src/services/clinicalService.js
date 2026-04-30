@@ -17,3 +17,15 @@ export const createImplantArea = async ({ consultationId, drawingData, grafts })
 export const deleteImplantArea = async (areaId) => {
   await api.delete(`/implant-areas/${areaId}`);
 };
+
+export const getClinicalNotes = async (patientId) => {
+  const response = await api.get(`/patients/${patientId}/clinical-notes/`);
+  return response.data?.notes || {};
+};
+
+export const saveClinicalNotes = async (patientId, notes) => {
+  const response = await api.put(`/patients/${patientId}/clinical-notes/`, {
+    notes,
+  });
+  return response.data.notes;
+};

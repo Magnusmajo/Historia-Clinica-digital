@@ -1,4 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { getApiError } from "../services/api";
+import {
+  createModuleRecord,
+  deleteModuleRecord,
+  getModuleRecords,
+} from "../services/moduleService";
 
 const pageCopy = {
   agenda: {
@@ -81,37 +88,59 @@ const pageCopy = {
   },
 };
 
-function getStoredRecords(type) {
-  try {
-    return JSON.parse(localStorage.getItem(`elara:${type}`)) || [];
-  } catch {
-    return [];
-  }
-}
-
 export default function OperationalPage({ type }) {
   const config = pageCopy[type];
-  const [records, setRecords] = useState(() => getStoredRecords(type));
+  const [records, setRecords] = useState([]);
   const [form, setForm] = useState(config.defaults);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const completed = useMemo(() => records.length, [records.length]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setLoading(true);
+      setError("");
+      setForm(config.defaults);
+    });
+
+    getModuleRecords(type)
+      .then(setRecords)
+      .catch((err) =>
+        setError(getApiError(err, "No se pudo cargar el modulo"))
+      )
+      .finally(() => setLoading(false));
+  }, [config.defaults, type]);
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const saveRecord = (event) => {
+  const saveRecord = async (event) => {
     event.preventDefault();
-    const nextRecords = [{ id: crypto.randomUUID(), ...form }, ...records];
-    setRecords(nextRecords);
-    localStorage.setItem(`elara:${type}`, JSON.stringify(nextRecords));
-    setForm(config.defaults);
+
+    try {
+      setSaving(true);
+      setError("");
+      const record = await createModuleRecord(type, form);
+      setRecords((current) => [record, ...current]);
+      setForm(config.defaults);
+    } catch (err) {
+      setError(getApiError(err, "No se pudo guardar el registro"));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const deleteRecord = (id) => {
-    const nextRecords = records.filter((record) => record.id !== id);
-    setRecords(nextRecords);
-    localStorage.setItem(`elara:${type}`, JSON.stringify(nextRecords));
+  const deleteRecord = async (id) => {
+    try {
+      setError("");
+      await deleteModuleRecord(type, id);
+      setRecords((current) => current.filter((record) => record.id !== id));
+    } catch (err) {
+      setError(getApiError(err, "No se pudo eliminar el registro"));
+    }
   };
 
   return (
@@ -139,9 +168,10 @@ export default function OperationalPage({ type }) {
             </label>
           ))}
         </div>
+        {error && <div className="alert error">{error}</div>}
         <div className="form-actions">
-          <button className="primary-action" type="submit">
-            {config.action}
+          <button className="primary-action" type="submit" disabled={saving}>
+            {saving ? "Guardando..." : config.action}
           </button>
         </div>
       </form>
@@ -150,7 +180,9 @@ export default function OperationalPage({ type }) {
         <div className="panel-header">
           <h3>Registros</h3>
         </div>
-        {records.length === 0 ? (
+        {loading ? (
+          <p className="empty-state">Cargando registros...</p>
+        ) : records.length === 0 ? (
           <p className="empty-state">{config.empty}</p>
         ) : (
           <div className="module-list">

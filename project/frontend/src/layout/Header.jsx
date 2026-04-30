@@ -1,4 +1,6 @@
 export default function Header() {
+  const currentDate = new Intl.DateTimeFormat("es-UY").format(new Date());
+
   return (
     <header className="topbar">
       <div>
@@ -7,7 +9,7 @@ export default function Header() {
       </div>
 
       <div className="topbar-actions">
-        <span className="date-pill">15/05/2026</span>
+        <span className="date-pill">{currentDate}</span>
         <div className="doctor-chip">
           <span className="avatar avatar-small">AR</span>
           <div>

@@ -14,6 +14,7 @@ export default function Dashboard() {
     patients: 0,
     consultations: 0,
     implant_areas: 0,
+    module_records: 0,
   });
 
   useEffect(() => {
@@ -54,6 +55,10 @@ export default function Dashboard() {
         <article className="metric-card">
           <span>Areas planificadas</span>
           <strong>{loading ? "..." : summary.implant_areas}</strong>
+        </article>
+        <article className="metric-card">
+          <span>Registros operativos</span>
+          <strong>{loading ? "..." : summary.module_records}</strong>
         </article>
       </div>
 

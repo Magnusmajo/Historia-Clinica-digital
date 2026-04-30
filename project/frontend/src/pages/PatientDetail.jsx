@@ -5,6 +5,8 @@ import {
   createConsultation,
   createImplantArea,
   deleteImplantArea,
+  getClinicalNotes,
+  saveClinicalNotes,
 } from "../services/clinicalService";
 import { getApiError } from "../services/api";
 import { getPatient } from "../services/patientService";
@@ -119,109 +121,71 @@ function initials(name = "") {
     .toUpperCase();
 }
 
-function getStoredClinicalNotes(patientId) {
-  try {
-    return JSON.parse(localStorage.getItem(`elara:clinical:${patientId}`)) || {};
-  } catch {
-    return {};
-  }
-}
-
 function HumanScalpMap({ activeZones, view }) {
   const isSuperior = view === "superior";
 
   return (
-    <svg
-      className={`human-scalp ${view}`}
-      viewBox="0 0 420 470"
+    <div
+      className={`clinical-scalp-map ${view}`}
       role="img"
-      aria-label="Cabeza humana para planificacion capilar"
+      aria-label="Vista superior de cuero cabelludo para planificacion capilar"
     >
-      <defs>
-        <linearGradient id="skinTone" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#f3c5a8" />
-          <stop offset="100%" stopColor="#d59a7d" />
-        </linearGradient>
-        <radialGradient id="hairTexture" cx="50%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#5b4032" />
-          <stop offset="55%" stopColor="#3b2a22" />
-          <stop offset="100%" stopColor="#211713" />
-        </radialGradient>
-        <pattern id="follicles" width="18" height="18" patternUnits="userSpaceOnUse">
-          <circle cx="4" cy="5" r="1.5" fill="#6f4b3a" opacity="0.45" />
-          <circle cx="13" cy="10" r="1.2" fill="#2a1d18" opacity="0.35" />
-          <circle cx="8" cy="15" r="1" fill="#8b6350" opacity="0.32" />
-        </pattern>
-      </defs>
-
-      <rect width="420" height="470" rx="18" fill="#fbfdff" />
-      {isSuperior ? (
-        <>
-          <ellipse cx="210" cy="230" rx="132" ry="170" fill="url(#skinTone)" />
-          <ellipse cx="210" cy="205" rx="146" ry="176" fill="url(#hairTexture)" />
-          <ellipse cx="210" cy="205" rx="146" ry="176" fill="url(#follicles)" opacity="0.55" />
-          <ellipse cx="210" cy="390" rx="52" ry="26" fill="#d39173" opacity="0.4" />
-        </>
-      ) : (
-        <>
+      <div className="scalp-base">
+        <span className="ear left" />
+        <span className="ear right" />
+        <span className="head-shape" />
+        <span className="hair-rim" />
+        <span className="hair-texture" />
+        <span className="forehead" />
+      </div>
+      <svg className="scalp-overlay" viewBox="0 0 420 470" aria-hidden="true">
+        {activeZones.has("Linea frontal") && (
           <path
-            d="M92 215 C88 118 135 52 210 52 C285 52 332 118 328 215 C326 322 280 414 210 414 C140 414 94 322 92 215 Z"
-            fill="url(#skinTone)"
+            className="svg-zone zone-frontal"
+            d={
+              isSuperior
+                ? "M92 318 C126 282 156 271 210 271 C264 271 294 282 328 318 C308 357 264 380 210 380 C156 380 112 357 92 318 Z"
+                : "M101 302 C135 268 166 258 210 258 C254 258 285 268 319 302 C303 340 260 361 210 361 C160 361 117 340 101 302 Z"
+            }
           />
+        )}
+        {activeZones.has("Entradas") && (
+          <>
+            <path
+              className="svg-zone zone-temporal"
+              d={
+                isSuperior
+                  ? "M70 130 C93 93 127 70 157 74 C146 151 136 235 130 315 C105 314 79 300 65 274 C62 226 61 174 70 130 Z"
+                  : "M78 145 C98 109 128 90 154 94 C146 158 137 226 130 294 C105 292 82 278 70 253 C68 215 69 174 78 145 Z"
+              }
+            />
+            <path
+              className="svg-zone zone-temporal"
+              d={
+                isSuperior
+                  ? "M350 130 C327 93 293 70 263 74 C274 151 284 235 290 315 C315 314 341 300 355 274 C358 226 359 174 350 130 Z"
+                  : "M342 145 C322 109 292 90 266 94 C274 158 283 226 290 294 C315 292 338 278 350 253 C352 215 351 174 342 145 Z"
+              }
+            />
+          </>
+        )}
+        {activeZones.has("Zona media") && (
           <path
-            d="M96 191 C91 101 144 42 210 42 C276 42 329 101 324 191 C291 164 256 150 210 150 C164 150 129 164 96 191 Z"
-            fill="url(#hairTexture)"
+            className="svg-zone zone-recipient"
+            d="M155 74 C174 55 246 55 265 74 C276 137 277 220 260 274 C242 287 178 287 160 274 C143 220 144 137 155 74 Z"
           />
-          <path
-            d="M96 191 C91 101 144 42 210 42 C276 42 329 101 324 191 C291 164 256 150 210 150 C164 150 129 164 96 191 Z"
-            fill="url(#follicles)"
-            opacity="0.5"
-          />
-          <path d="M154 283 C184 302 235 302 266 283" fill="none" stroke="#9f6f5c" strokeWidth="5" strokeLinecap="round" opacity="0.55" />
-          <ellipse cx="155" cy="222" rx="13" ry="8" fill="#573a2d" opacity="0.55" />
-          <ellipse cx="265" cy="222" rx="13" ry="8" fill="#573a2d" opacity="0.55" />
-          <path d="M204 226 C196 258 198 274 210 278 C222 274 224 258 216 226" fill="#cd9277" opacity="0.55" />
-        </>
-      )}
-
-      {activeZones.has("Linea frontal") && (
-        <path
-          className="svg-zone"
-          d={isSuperior
-            ? "M105 270 C132 232 171 214 210 214 C249 214 288 232 315 270 C294 308 252 330 210 330 C168 330 126 308 105 270 Z"
-            : "M103 187 C136 158 172 145 210 145 C248 145 284 158 317 187 C306 223 265 242 210 242 C155 242 114 223 103 187 Z"}
-        />
-      )}
-      {activeZones.has("Entradas") && (
-        <>
-          <path
-            className="svg-zone"
-            d={isSuperior
-              ? "M80 183 C99 145 127 125 153 130 C146 171 128 206 98 229 C87 219 80 202 80 183 Z"
-              : "M98 147 C122 116 151 105 172 122 C160 155 143 181 111 195 C101 183 96 166 98 147 Z"}
-          />
-          <path
-            className="svg-zone"
-            d={isSuperior
-              ? "M340 183 C321 145 293 125 267 130 C274 171 292 206 322 229 C333 219 340 202 340 183 Z"
-              : "M322 147 C298 116 269 105 248 122 C260 155 277 181 309 195 C319 183 324 166 322 147 Z"}
-          />
-        </>
-      )}
-      {activeZones.has("Zona media") && (
-        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "205" : "112"} rx="74" ry="58" />
-      )}
-      {activeZones.has("Vertex") && (
-        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "150" : "85"} rx="52" ry="42" />
-      )}
-      {activeZones.has("Coronilla") && (
-        <ellipse className="svg-zone" cx="210" cy={isSuperior ? "112" : "72"} rx="70" ry="52" />
-      )}
-
-      <text x="210" y="444" textAnchor="middle" className="map-caption">
-        {isSuperior ? "Vista superior" : "Vista frontal"}
-      </text>
-    </svg>
+        )}
+        {activeZones.has("Vertex") && (
+          <ellipse className="svg-zone zone-vertex" cx="210" cy="126" rx="55" ry="58" />
+        )}
+        {activeZones.has("Coronilla") && (
+          <ellipse className="svg-zone zone-crown" cx="210" cy="89" rx="70" ry="48" />
+        )}
+      </svg>
+      <span className="map-caption">
+        {isSuperior ? "Vista superior" : "Vista frontal referencial"}
+      </span>
+    </div>
   );
 }
 
@@ -233,17 +197,18 @@ export default function PatientDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState("frontal");
+  const [view, setView] = useState("superior");
   const [activeSection, setActiveSection] = useState("Historia clinica");
   const [activeStep, setActiveStep] = useState(5);
-  const [zones, setZones] = useState(["Linea frontal", "Entradas"]);
+  const [zones, setZones] = useState(["Linea frontal", "Entradas", "Zona media"]);
   const [follicles, setFollicles] = useState("3500");
   const [notes, setNotes] = useState(
     "Alta densidad en linea frontal y entradas."
   );
-  const [clinicalNotes, setClinicalNotes] = useState(() =>
-    getStoredClinicalNotes(id)
-  );
+  const [clinicalNotes, setClinicalNotes] = useState({});
+  const [clinicalLoaded, setClinicalLoaded] = useState(false);
+  const [clinicalDirty, setClinicalDirty] = useState(false);
+  const [savingClinical, setSavingClinical] = useState(false);
 
   const loadPatient = useCallback(async () => {
     try {
@@ -260,6 +225,42 @@ export default function PatientDetail() {
   useEffect(() => {
     Promise.resolve().then(loadPatient);
   }, [loadPatient]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => setClinicalLoaded(false));
+    getClinicalNotes(id)
+      .then((data) => {
+        setClinicalNotes(data);
+        setClinicalDirty(false);
+        setClinicalLoaded(true);
+      })
+      .catch((err) => {
+        setError(getApiError(err, "No se pudo cargar la historia clinica"));
+        setClinicalLoaded(true);
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (!clinicalLoaded || !clinicalDirty) return undefined;
+
+    const timeout = setTimeout(() => {
+      setSavingClinical(true);
+      saveClinicalNotes(id, clinicalNotes)
+        .then(() => setClinicalDirty(false))
+        .catch((err) => {
+          setClinicalDirty(true);
+          setError(getApiError(err, "No se pudo guardar la historia clinica"));
+        })
+        .finally(() => {
+          setSavingClinical(false);
+        });
+    }, 600);
+
+    return () => {
+      clearTimeout(timeout);
+      setSavingClinical(false);
+    };
+  }, [clinicalDirty, clinicalLoaded, clinicalNotes, id]);
 
   const activeZones = useMemo(() => new Set(zones), [zones]);
   const consultations = useMemo(
@@ -286,16 +287,15 @@ export default function PatientDetail() {
   };
 
   const updateClinicalField = (step, field, value) => {
+    setClinicalDirty(true);
     setClinicalNotes((current) => {
-      const next = {
+      return {
         ...current,
         [step]: {
           ...(current[step] || {}),
           [field]: value,
         },
       };
-      localStorage.setItem(`elara:clinical:${id}`, JSON.stringify(next));
-      return next;
     });
   };
 
@@ -536,7 +536,11 @@ export default function PatientDetail() {
                 </label>
               ))}
             </div>
-            <p className="hint">Los datos se guardan automaticamente en esta estacion local.</p>
+            <p className="hint">
+              {savingClinical
+                ? "Guardando historia clinica..."
+                : "Los datos se guardan automaticamente en la ficha del paciente."}
+            </p>
           </div>
         )}
 
@@ -547,16 +551,16 @@ export default function PatientDetail() {
               <h2>Area a implantar</h2>
               <div className="segmented-control">
                 <button
-                  className={view === "frontal" ? "active" : ""}
-                  onClick={() => setView("frontal")}
-                >
-                  Vista frontal
-                </button>
-                <button
                   className={view === "superior" ? "active" : ""}
                   onClick={() => setView("superior")}
                 >
                   Vista superior
+                </button>
+                <button
+                  className={view === "frontal" ? "active" : ""}
+                  onClick={() => setView("frontal")}
+                >
+                  Referencia frontal
                 </button>
               </div>
             </div>
@@ -567,7 +571,7 @@ export default function PatientDetail() {
                 <button onClick={() => setZones((current) => current.slice(0, -1))}>
                   Borrar
                 </button>
-                <button onClick={() => setZones(["Linea frontal", "Entradas"])}>
+                <button onClick={() => setZones(["Linea frontal", "Entradas", "Zona media"])}>
                   Deshacer
                 </button>
                 <button onClick={clearArea}>Limpiar</button>
