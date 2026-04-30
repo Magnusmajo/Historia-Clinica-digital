@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 
+
 class Consultation(Base):
     __tablename__ = "consultations"
 
@@ -10,4 +11,9 @@ class Consultation(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     date = Column(DateTime, default=datetime.utcnow)
 
-    patient = relationship("Patient", backref="consultations")
+    patient = relationship("Patient", back_populates="consultations")
+    implant_areas = relationship(
+        "ImplantArea",
+        back_populates="consultation",
+        cascade="all, delete-orphan",
+    )

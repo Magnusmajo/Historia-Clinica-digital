@@ -1,65 +1,85 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../services/api";
+
+import { getApiError } from "../services/api";
+import { getPatients } from "../services/patientService";
 
 export default function Patients() {
   const navigate = useNavigate();
-
   const [patients, setPatients] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const res = await api.get("/patients");
-        setPatients(res.data);
-      } catch (error) {
-        console.error("Error cargando pacientes", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const timeout = setTimeout(() => {
+      setLoading(true);
+      setError("");
 
-    fetchPatients();
-  }, []);
+      getPatients(search)
+        .then(setPatients)
+        .catch((err) =>
+          setError(getApiError(err, "No se pudo cargar pacientes"))
+        )
+        .finally(() => setLoading(false));
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1>Pacientes</h1>
-
-        <button onClick={() => navigate("/patients/new")}>
-          + Nuevo paciente
+    <section className="page-stack">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Gestion clinica</p>
+          <h2>Pacientes</h2>
+        </div>
+        <button className="primary-action" onClick={() => navigate("/patients/new")}>
+          Nuevo paciente
         </button>
       </div>
 
-      <div style={{ marginTop: "20px" }}>
+      <article className="data-panel">
+        <div className="toolbar">
+          <label className="search-box">
+            <span>Buscar</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Nombre o CI"
+            />
+          </label>
+        </div>
+
+        {error && <div className="alert error">{error}</div>}
+
         {loading ? (
-          <p>Cargando...</p>
+          <p className="empty-state">Cargando pacientes...</p>
         ) : patients.length === 0 ? (
-          <p>No hay pacientes</p>
+          <p className="empty-state">No hay pacientes para mostrar.</p>
         ) : (
-          patients.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => navigate(`/patients/${p.id}`)}
-              style={{
-                padding: "12px",
-                borderBottom: "1px solid #1e293b",
-                cursor: "pointer",
-              }}
-            >
-              <strong>{p.name}</strong> - {p.ci}
+          <div className="patient-table">
+            <div className="patient-table-head">
+              <span>Paciente</span>
+              <span>CI</span>
+              <span>Edad</span>
+              <span>Telefono</span>
             </div>
-          ))
+            {patients.map((patient) => (
+              <button
+                key={patient.id}
+                className="patient-table-row"
+                onClick={() => navigate(`/patients/${patient.id}`)}
+              >
+                <span>{patient.name}</span>
+                <span>{patient.ci}</span>
+                <span>{patient.age ?? "-"}</span>
+                <span>{patient.phone || "-"}</span>
+              </button>
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }

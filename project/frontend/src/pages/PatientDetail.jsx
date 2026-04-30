@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api } from "../services/api";
+
+import {
+  createConsultation,
+  createImplantArea,
+  deleteImplantArea,
+} from "../services/clinicalService";
+import { getApiError } from "../services/api";
+import { getPatient } from "../services/patientService";
 
 const historySteps = [
   "Antecedentes",
@@ -22,16 +29,20 @@ const availableZones = [
   "Zona media",
 ];
 
-const fallbackPatient = {
-  name: "Juan Perez",
-  ci: "4.123.456-7",
-  age: 32,
-  sex: "Masculino",
-  phone: "099 123 456",
-  email: "juanperez@email.com",
-  occupation: "Ingeniero",
-  city: "Montevideo",
-};
+function formatDate(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-UY").format(new Date(value));
+}
+
+function initials(name = "") {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -39,31 +50,46 @@ export default function PatientDetail() {
 
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [view, setView] = useState("frontal");
   const [zones, setZones] = useState(["Linea frontal", "Entradas"]);
   const [follicles, setFollicles] = useState("3500");
   const [notes, setNotes] = useState(
     "Alta densidad en linea frontal y entradas."
   );
-  const [selectedAreas, setSelectedAreas] = useState([]);
 
-  useEffect(() => {
-    const fetchPatient = async () => {
-      try {
-        const res = await api.get(`/patients/${id}`);
-        setPatient({ ...fallbackPatient, ...res.data });
-      } catch (error) {
-        console.error("Error cargando paciente", error);
-        setPatient(fallbackPatient);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPatient();
+  const loadPatient = useCallback(async () => {
+    try {
+      const data = await getPatient(id);
+      setPatient(data);
+      setError("");
+    } catch (err) {
+      setError(getApiError(err, "No se pudo cargar el paciente"));
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
+  useEffect(() => {
+    Promise.resolve().then(loadPatient);
+  }, [loadPatient]);
+
   const activeZones = useMemo(() => new Set(zones), [zones]);
+  const consultations = useMemo(
+    () => patient?.consultations || [],
+    [patient?.consultations]
+  );
+  const selectedAreas = useMemo(
+    () =>
+      consultations.flatMap((consultation) =>
+        (consultation.implant_areas || []).map((area) => ({
+          ...area,
+          consultationDate: consultation.date,
+        }))
+      ),
+    [consultations]
+  );
 
   const toggleZone = (zone) => {
     setZones((current) =>
@@ -73,29 +99,75 @@ export default function PatientDetail() {
     );
   };
 
-  const saveArea = () => {
-    if (zones.length === 0) return;
-
-    setSelectedAreas((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        name: zones.join(" y "),
-        follicles,
-        notes,
-        date: "15/05/2026",
-      },
-    ]);
-  };
-
   const clearArea = () => {
     setZones([]);
     setFollicles("");
     setNotes("");
   };
 
-  if (loading) {
+  const saveArea = async () => {
+    if (zones.length === 0) {
+      setError("Selecciona al menos una zona");
+      return;
+    }
+
+    const grafts = Number(follicles);
+    if (!Number.isFinite(grafts) || grafts < 0) {
+      setError("Los foliculos estimados deben ser un numero valido");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+
+      const consultation =
+        consultations[0] || (await createConsultation(Number(id)));
+
+      await createImplantArea({
+        consultationId: consultation.id,
+        grafts,
+        drawingData: {
+          view,
+          zones,
+          notes,
+          created_at: new Date().toISOString(),
+        },
+      });
+
+      await loadPatient();
+    } catch (err) {
+      setError(getApiError(err, "No se pudo guardar el area"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeArea = async (areaId) => {
+    try {
+      setError("");
+      await deleteImplantArea(areaId);
+      await loadPatient();
+    } catch (err) {
+      setError(getApiError(err, "No se pudo eliminar el area"));
+    }
+  };
+
+  if (loading && !patient) {
     return <div className="screen-state">Cargando paciente...</div>;
+  }
+
+  if (!patient) {
+    return (
+      <div className="screen-state">
+        <div>
+          <p>{error || "Paciente no encontrado"}</p>
+          <button className="secondary-action" onClick={() => navigate("/patients")}>
+            Volver a pacientes
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -107,7 +179,7 @@ export default function PatientDetail() {
 
         <article className="patient-card">
           <div className="patient-header">
-            <span className="patient-photo">JP</span>
+            <span className="patient-photo">{initials(patient.name)}</span>
             <div>
               <h2>{patient.name}</h2>
               <p>CI: {patient.ci}</p>
@@ -117,7 +189,7 @@ export default function PatientDetail() {
           <dl className="patient-data">
             <div>
               <dt>Edad</dt>
-              <dd>{patient.age || "-"} anos</dd>
+              <dd>{patient.age ?? "-"} anos</dd>
             </div>
             <div>
               <dt>Sexo</dt>
@@ -152,18 +224,16 @@ export default function PatientDetail() {
 
         <article className="patient-card compact">
           <h3>Consultas anteriores</h3>
-          <div className="previous-row">
-            <span>10/03/2026</span>
-            <strong>Control</strong>
-          </div>
-          <div className="previous-row">
-            <span>12/02/2026</span>
-            <strong>Implante</strong>
-          </div>
-          <div className="previous-row">
-            <span>15/01/2026</span>
-            <strong>Consulta inicial</strong>
-          </div>
+          {consultations.length === 0 ? (
+            <p className="empty-state">Sin consultas registradas.</p>
+          ) : (
+            consultations.map((consultation) => (
+              <div className="previous-row" key={consultation.id}>
+                <span>{formatDate(consultation.date)}</span>
+                <strong>Consulta #{consultation.id}</strong>
+              </div>
+            ))
+          )}
         </article>
       </section>
 
@@ -180,6 +250,8 @@ export default function PatientDetail() {
             </div>
           ))}
         </div>
+
+        {error && <div className="alert error in-panel">{error}</div>}
 
         <div className="implant-workspace">
           <div className="implant-main">
@@ -204,8 +276,12 @@ export default function PatientDetail() {
             <div className={`scalp-board ${view}`}>
               <div className="tool-rail">
                 <button className="active">Dibujar</button>
-                <button>Borrar</button>
-                <button>Deshacer</button>
+                <button onClick={() => setZones((current) => current.slice(0, -1))}>
+                  Borrar
+                </button>
+                <button onClick={() => setZones(["Linea frontal", "Entradas"])}>
+                  Deshacer
+                </button>
                 <button onClick={clearArea}>Limpiar</button>
               </div>
 
@@ -233,7 +309,9 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            <p className="hint">Dibuja el area donde se realizara el implante capilar.</p>
+            <p className="hint">
+              Dibuja el area donde se realizara el implante capilar.
+            </p>
           </div>
 
           <aside className="implant-controls">
@@ -271,13 +349,15 @@ export default function PatientDetail() {
               />
             </label>
 
-            <p className="info-note">Puedes dibujar multiples zonas si es necesario.</p>
+            <p className="info-note">
+              Puedes dibujar multiples zonas si es necesario.
+            </p>
 
             <div className="panel-actions">
               <button onClick={clearArea}>Cancelar</button>
               <button>Anterior</button>
-              <button className="primary" onClick={saveArea}>
-                Guardar area
+              <button className="primary" onClick={saveArea} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar area"}
               </button>
             </div>
           </aside>
@@ -294,19 +374,14 @@ export default function PatientDetail() {
               <div className="mini-scalp" />
               <div>
                 <strong>
-                  Area {index + 1} - {area.name}
+                  Area {index + 1} -{" "}
+                  {(area.drawing_data?.zones || []).join(" y ") || "Sin zonas"}
                 </strong>
-                <p>Foliculos estimados: {area.follicles || "-"}</p>
-                <p>Fecha: {area.date}</p>
+                <p>Foliculos estimados: {area.grafts || "-"}</p>
+                <p>Fecha: {formatDate(area.consultationDate)}</p>
+                {area.drawing_data?.notes && <p>{area.drawing_data.notes}</p>}
               </div>
-              <button
-                className="danger"
-                onClick={() =>
-                  setSelectedAreas((current) =>
-                    current.filter((item) => item.id !== area.id)
-                  )
-                }
-              >
+              <button className="danger" onClick={() => removeArea(area.id)}>
                 Eliminar area
               </button>
             </article>

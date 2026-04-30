@@ -18,7 +18,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -733,4 +734,216 @@ a {
   place-items: center;
   color: #52637a;
   font-weight: 800;
+}
+
+.page-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.page-heading h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+}
+
+.primary-action,
+.secondary-action {
+  min-height: 40px;
+  border-radius: 7px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primary-action {
+  border: 1px solid #2874f0;
+  background: #2874f0;
+  color: #fff;
+}
+
+.secondary-action {
+  border: 1px solid #dbe4ef;
+  background: #fff;
+  color: #34455c;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric-card,
+.data-panel,
+.form-panel {
+  border: 1px solid #e4eaf2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.metric-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.metric-card span {
+  color: #607187;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.metric-card strong {
+  color: #172033;
+  font-size: 32px;
+}
+
+.data-panel,
+.form-panel {
+  padding: 18px;
+}
+
+.panel-header,
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-header h3 {
+  margin: 0;
+}
+
+.panel-header button {
+  border: 0;
+  background: transparent;
+  color: #2874f0;
+  font-weight: 800;
+}
+
+.table-list,
+.patient-table {
+  display: grid;
+}
+
+.table-row,
+.patient-table-row,
+.patient-table-head {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  align-items: center;
+  min-height: 48px;
+  gap: 16px;
+  border: 0;
+  border-bottom: 1px solid #edf1f6;
+  background: transparent;
+  color: #334155;
+  text-align: left;
+}
+
+.table-row span:first-child,
+.patient-table-row span:first-child {
+  font-weight: 800;
+}
+
+.patient-table-head,
+.patient-table-row {
+  grid-template-columns: 1.5fr 1fr 0.6fr 1fr;
+}
+
+.patient-table-head {
+  min-height: 36px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.patient-table-row:hover,
+.table-row:hover {
+  background: #f7fbff;
+}
+
+.search-box {
+  display: grid;
+  gap: 7px;
+  width: min(420px, 100%);
+}
+
+.search-box span {
+  color: #53647a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.search-box input {
+  min-height: 40px;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  padding: 0 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field select {
+  width: 100%;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: #1f2c3d;
+  background: #fff;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.form-actions button {
+  min-height: 40px;
+  border: 1px solid #dbe4ef;
+  border-radius: 7px;
+  padding: 0 16px;
+  background: #fff;
+  color: #34455c;
+  font-weight: 800;
+}
+
+.alert {
+  border-radius: 7px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.alert.error {
+  border: 1px solid #ffc9c9;
+  background: #fff5f5;
+  color: #c13b3b;
+}
+
+.alert.in-panel {
+  margin: 14px 16px 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }

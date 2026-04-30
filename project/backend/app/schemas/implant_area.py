@@ -1,6 +1,19 @@
-from pydantic import BaseModel
+from typing import Any
 
-class ImplantAreaCreate(BaseModel):
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ImplantAreaBase(BaseModel):
+    drawing_data: dict[str, Any] = Field(default_factory=dict)
+    grafts: int = 0
+
+
+class ImplantAreaCreate(ImplantAreaBase):
     consultation_id: int
-    drawing_data: dict
-    grafts: int
+
+
+class ImplantAreaRead(ImplantAreaBase):
+    id: int
+    consultation_id: int
+
+    model_config = ConfigDict(from_attributes=True)
