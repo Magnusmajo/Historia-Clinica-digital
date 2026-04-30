@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [summary, setSummary] = useState({
     patients: 0,
+    appointments: 0,
     consultations: 0,
     implant_areas: 0,
     module_records: 0,
@@ -47,6 +48,10 @@ export default function Dashboard() {
         <article className="metric-card">
           <span>Pacientes activos</span>
           <strong>{loading ? "..." : summary.patients}</strong>
+        </article>
+        <article className="metric-card">
+          <span>Consultas agendadas</span>
+          <strong>{loading ? "..." : summary.appointments}</strong>
         </article>
         <article className="metric-card">
           <span>Consultas registradas</span>

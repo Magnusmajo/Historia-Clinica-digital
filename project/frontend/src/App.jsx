@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
 
 import Dashboard from "./pages/Dashboard";
+import Agenda from "./pages/Agenda";
 import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import OperationalPage from "./pages/OperationalPage";
@@ -16,7 +17,7 @@ function App() {
           <Route path="/patients" element={<Patients />} />
           <Route path="/patients/new" element={<NewPatient />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
-          <Route path="/agenda" element={<OperationalPage type="agenda" />} />
+          <Route path="/agenda" element={<Agenda />} />
           <Route path="/consultations" element={<OperationalPage type="consultations" />} />
           <Route path="/procedures" element={<OperationalPage type="procedures" />} />
           <Route path="/evolution" element={<OperationalPage type="evolution" />} />

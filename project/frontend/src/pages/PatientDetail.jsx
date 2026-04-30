@@ -128,7 +128,7 @@ function HumanScalpMap({ activeZones, view }) {
     <div
       className={`clinical-scalp-map ${view}`}
       role="img"
-      aria-label="Vista superior de cuero cabelludo para planificacion capilar"
+      aria-label="Cabeza orientada al frente para planificacion capilar"
     >
       <div className="scalp-base">
         <span className="ear left" />
@@ -137,6 +137,9 @@ function HumanScalpMap({ activeZones, view }) {
         <span className="hair-rim" />
         <span className="hair-texture" />
         <span className="forehead" />
+        <span className="brow left" />
+        <span className="brow right" />
+        <span className="nose" />
       </div>
       <svg className="scalp-overlay" viewBox="0 0 420 470" aria-hidden="true">
         {activeZones.has("Linea frontal") && (
@@ -144,7 +147,7 @@ function HumanScalpMap({ activeZones, view }) {
             className="svg-zone zone-frontal"
             d={
               isSuperior
-                ? "M92 318 C126 282 156 271 210 271 C264 271 294 282 328 318 C308 357 264 380 210 380 C156 380 112 357 92 318 Z"
+                ? "M92 302 C126 267 156 256 210 256 C264 256 294 267 328 302 C309 342 264 365 210 365 C156 365 111 342 92 302 Z"
                 : "M101 302 C135 268 166 258 210 258 C254 258 285 268 319 302 C303 340 260 361 210 361 C160 361 117 340 101 302 Z"
             }
           />
@@ -155,7 +158,7 @@ function HumanScalpMap({ activeZones, view }) {
               className="svg-zone zone-temporal"
               d={
                 isSuperior
-                  ? "M70 130 C93 93 127 70 157 74 C146 151 136 235 130 315 C105 314 79 300 65 274 C62 226 61 174 70 130 Z"
+                  ? "M70 124 C93 88 127 66 157 70 C146 145 137 220 130 300 C105 300 79 286 65 260 C62 216 61 168 70 124 Z"
                   : "M78 145 C98 109 128 90 154 94 C146 158 137 226 130 294 C105 292 82 278 70 253 C68 215 69 174 78 145 Z"
               }
             />
@@ -163,7 +166,7 @@ function HumanScalpMap({ activeZones, view }) {
               className="svg-zone zone-temporal"
               d={
                 isSuperior
-                  ? "M350 130 C327 93 293 70 263 74 C274 151 284 235 290 315 C315 314 341 300 355 274 C358 226 359 174 350 130 Z"
+                  ? "M350 124 C327 88 293 66 263 70 C274 145 283 220 290 300 C315 300 341 286 355 260 C358 216 359 168 350 124 Z"
                   : "M342 145 C322 109 292 90 266 94 C274 158 283 226 290 294 C315 292 338 278 350 253 C352 215 351 174 342 145 Z"
               }
             />
@@ -172,18 +175,18 @@ function HumanScalpMap({ activeZones, view }) {
         {activeZones.has("Zona media") && (
           <path
             className="svg-zone zone-recipient"
-            d="M155 74 C174 55 246 55 265 74 C276 137 277 220 260 274 C242 287 178 287 160 274 C143 220 144 137 155 74 Z"
+            d="M155 68 C174 50 246 50 265 68 C278 132 277 206 260 258 C242 272 178 272 160 258 C143 206 142 132 155 68 Z"
           />
         )}
         {activeZones.has("Vertex") && (
-          <ellipse className="svg-zone zone-vertex" cx="210" cy="126" rx="55" ry="58" />
+          <ellipse className="svg-zone zone-vertex" cx="210" cy="119" rx="55" ry="54" />
         )}
         {activeZones.has("Coronilla") && (
-          <ellipse className="svg-zone zone-crown" cx="210" cy="89" rx="70" ry="48" />
+          <ellipse className="svg-zone zone-crown" cx="210" cy="82" rx="70" ry="44" />
         )}
       </svg>
       <span className="map-caption">
-        {isSuperior ? "Vista superior" : "Vista frontal referencial"}
+        {isSuperior ? "Rostro hacia el frente" : "Referencia frontal"}
       </span>
     </div>
   );

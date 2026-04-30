@@ -3,9 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.routes import clinical_note, consultation, implant_area, module_record, patient, stats
+from app.routes import (
+    appointment,
+    clinical_note,
+    consultation,
+    google_calendar,
+    implant_area,
+    module_record,
+    patient,
+    stats,
+)
 
 # Importar modelos explicitamente para crear tablas en desarrollo.
+from app.models.appointment import Appointment
 from app.models.consultation import Consultation
 from app.models.clinical_note import ClinicalNote
 from app.models.implant_area import ImplantArea
@@ -26,10 +36,12 @@ app.add_middleware(
 )
 
 app.include_router(patient.router)
+app.include_router(appointment.router)
 app.include_router(consultation.router)
 app.include_router(implant_area.router)
 app.include_router(module_record.router)
 app.include_router(clinical_note.router)
+app.include_router(google_calendar.router)
 app.include_router(stats.router)
 
 
