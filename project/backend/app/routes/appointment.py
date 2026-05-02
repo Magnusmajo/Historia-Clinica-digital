@@ -7,9 +7,23 @@ from app.database import get_db
 from app.models.appointment import Appointment
 from app.models.patient import Patient
 from app.schemas.appointment import AppointmentCreate, AppointmentRead, AppointmentUpdate
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 from app.services import google_calendar
 
-router = APIRouter(prefix="/appointments", tags=["appointments"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/appointments",
+    tags=["appointments"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 
 def get_appointment_or_404(appointment_id: int, db: Session):
@@ -71,7 +85,11 @@ def get_appointments(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED)
-def create_appointment(data: AppointmentCreate, db: Session = Depends(get_db)):
+def create_appointment(
+    data: AppointmentCreate,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     ensure_patient(data.patient_id, db)
     starts_at = normalize_datetime(data.starts_at)
     ends_at = normalize_datetime(data.ends_at)
@@ -111,6 +129,7 @@ def update_appointment(
     appointment_id: int,
     data: AppointmentUpdate,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     appointment = get_appointment_or_404(appointment_id, db)
     update_data = data.model_dump(exclude_unset=True, exclude={"sync_google"})
@@ -146,7 +165,11 @@ def update_appointment(
 
 
 @router.post("/{appointment_id}/sync", response_model=AppointmentRead)
-def sync_appointment(appointment_id: int, db: Session = Depends(get_db)):
+def sync_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     appointment = get_appointment_or_404(appointment_id, db)
     try:
         try_sync_google(appointment)
@@ -159,7 +182,11 @@ def sync_appointment(appointment_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
+def delete_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     appointment = get_appointment_or_404(appointment_id, db)
     google_event_id = appointment.google_event_id
 

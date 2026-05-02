@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Sidebar() {
+  const { user } = useAuth();
   const menu = [
     ["Dashboard", "/"],
     ["Pacientes", "/patients"],
@@ -11,6 +13,12 @@ export default function Sidebar() {
     ["Reportes", "/reports"],
     ["Configuracion", "/settings"],
   ];
+  const adminMenu = user?.role === "admin"
+    ? [
+        ["Usuarios", "/users"],
+        ["Auditoria", "/audit"],
+      ]
+    : [];
 
   return (
     <aside className="sidebar">
@@ -23,7 +31,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {menu.map(([label, to]) => (
+        {[...menu, ...adminMenu].map(([label, to]) => (
           <NavLink
             key={label}
             to={to}
@@ -42,8 +50,8 @@ export default function Sidebar() {
       <div className="clinic-chip">
         <span className="avatar">CE</span>
         <div>
-          <strong>Clinica Elara</strong>
-          <small>Admin</small>
+          <strong>{user?.name || "Clinica Elara"}</strong>
+          <small>{user?.role || "Sesion"}</small>
         </div>
       </div>
     </aside>

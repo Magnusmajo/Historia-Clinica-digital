@@ -5,8 +5,22 @@ from app.database import get_db
 from app.models.clinical_note import ClinicalNote
 from app.models.patient import Patient
 from app.schemas.clinical_note import ClinicalNoteRead, ClinicalNoteUpdate
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 
-router = APIRouter(prefix="/patients/{patient_id}/clinical-notes", tags=["clinical-notes"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/patients/{patient_id}/clinical-notes",
+    tags=["clinical-notes"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 
 def ensure_patient(patient_id: int, db: Session):
@@ -26,6 +40,7 @@ def upsert_clinical_notes(
     patient_id: int,
     data: ClinicalNoteUpdate,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     ensure_patient(patient_id, db)
     note = db.query(ClinicalNote).filter(ClinicalNote.patient_id == patient_id).first()

@@ -1,14 +1,15 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from app.config import get_settings
+from app.security import ROLE_ADMIN, ROLE_DOCTOR, require_roles
 from app.services import google_calendar
 
 router = APIRouter(prefix="/google-calendar", tags=["google-calendar"])
 
 
 @router.get("/status")
-def get_google_calendar_status():
+def get_google_calendar_status(_user=Depends(require_roles(ROLE_ADMIN, ROLE_DOCTOR))):
     try:
         return {
             "credentials_file": google_calendar.credentials_file_exists(),
@@ -27,7 +28,7 @@ def get_google_calendar_status():
 
 
 @router.get("/auth-url")
-def get_auth_url():
+def get_auth_url(_user=Depends(require_roles(ROLE_ADMIN, ROLE_DOCTOR))):
     try:
         return {"auth_url": google_calendar.build_auth_url()}
     except RuntimeError as exc:

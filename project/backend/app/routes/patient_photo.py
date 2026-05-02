@@ -10,8 +10,22 @@ from app.database import get_db
 from app.models.patient import Patient
 from app.models.patient_photo import PatientPhoto
 from app.schemas.patient_photo import PatientPhotoRead
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 
-router = APIRouter(prefix="/patients/{patient_id}/photos", tags=["patient-photos"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/patients/{patient_id}/photos",
+    tags=["patient-photos"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 UPLOAD_ROOT = Path("uploads") / "patients"
 MAX_FILE_SIZE = 12 * 1024 * 1024
@@ -116,6 +130,7 @@ async def upload_patient_photo(
     notes: str | None = Form(default=None),
     taken_at: str | None = Form(default=None),
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     ensure_patient(patient_id, db)
 
@@ -169,6 +184,7 @@ def delete_patient_photo(
     patient_id: int,
     photo_id: int,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     photo = (
         db.query(PatientPhoto)

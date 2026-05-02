@@ -6,12 +6,30 @@ from app.database import get_db
 from app.models.consultation import Consultation
 from app.models.patient import Patient
 from app.schemas.patient import PatientCreate, PatientDetail, PatientRead, PatientUpdate
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 
-router = APIRouter(prefix="/patients", tags=["patients"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/patients",
+    tags=["patients"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 
 @router.post("/", response_model=PatientRead, status_code=status.HTTP_201_CREATED)
-def create_patient(data: PatientCreate, db: Session = Depends(get_db)):
+def create_patient(
+    data: PatientCreate,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     patient = Patient(**data.model_dump())
     db.add(patient)
 
@@ -60,7 +78,10 @@ def get_patient(patient_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{patient_id}", response_model=PatientRead)
 def update_patient(
-    patient_id: int, data: PatientUpdate, db: Session = Depends(get_db)
+    patient_id: int,
+    data: PatientUpdate,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
 

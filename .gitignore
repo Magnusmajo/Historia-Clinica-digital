@@ -22,5 +22,6 @@ project/frontend/.npm-cache/
 project/frontend/dist/
 
 *.log
+*.err
 vite-dev.log
 vite-dev.err
