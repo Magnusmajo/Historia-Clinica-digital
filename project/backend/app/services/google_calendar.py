@@ -1,5 +1,9 @@
 import os
+import secrets
 from datetime import timezone
+from pathlib import Path
+from secrets import compare_digest
+from urllib.parse import parse_qs, urlparse
 
 from app.config import get_settings
 from app.models.appointment import Appointment
@@ -27,6 +31,33 @@ def _settings():
 
 def credentials_file_exists():
     return os.path.exists(_settings().google_credentials_file)
+
+
+def _state_path():
+    return Path(_settings().google_oauth_state_file)
+
+
+def _save_oauth_state(state: str):
+    _state_path().write_text(state, encoding="utf-8")
+
+
+def _load_oauth_state():
+    path = _state_path()
+    if not path.exists():
+        return None
+    return path.read_text(encoding="utf-8").strip()
+
+
+def _clear_oauth_state():
+    path = _state_path()
+    if path.exists():
+        path.unlink()
+
+
+def _extract_oauth_state(authorization_response: str):
+    query = parse_qs(urlparse(authorization_response).query)
+    values = query.get("state") or []
+    return values[0] if values else None
 
 
 def get_credentials():
@@ -67,26 +98,36 @@ def build_auth_url():
         scopes=SCOPES,
         redirect_uri=settings.google_redirect_uri,
     )
+    state = secrets.token_urlsafe(32)
     auth_url, _ = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
         prompt="consent",
+        state=state,
     )
+    _save_oauth_state(state)
     return auth_url
 
 
 def save_callback_token(authorization_response: str):
     _, _, Flow, _ = _load_google_modules()
     settings = _settings()
+    state = _extract_oauth_state(authorization_response)
+    expected_state = _load_oauth_state()
+    if not state or not expected_state or not compare_digest(state, expected_state):
+        raise RuntimeError("Estado OAuth invalido. Inicia la conexion nuevamente.")
+
     flow = Flow.from_client_secrets_file(
         settings.google_credentials_file,
         scopes=SCOPES,
         redirect_uri=settings.google_redirect_uri,
+        state=state,
     )
     flow.fetch_token(authorization_response=authorization_response)
 
     with open(settings.google_token_file, "w", encoding="utf-8") as token:
         token.write(flow.credentials.to_json())
+    _clear_oauth_state()
 
 
 def _calendar_service():

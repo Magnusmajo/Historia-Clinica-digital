@@ -27,3 +27,9 @@ export const getPhotoUrl = (url) => {
   if (url.startsWith("http")) return url;
   return `${api.defaults.baseURL}${url}`;
 };
+
+export const getProtectedPhotoUrl = async (url) => {
+  if (!url) return "";
+  const response = await api.get(url, { responseType: "blob" });
+  return URL.createObjectURL(response.data);
+};

@@ -13,7 +13,7 @@ import { getPatient } from "../services/patientService";
 import {
   deletePatientPhoto,
   getPatientPhotos,
-  getPhotoUrl,
+  getProtectedPhotoUrl,
   uploadPatientPhoto,
 } from "../services/photoService";
 
@@ -207,6 +207,31 @@ function HumanScalpMap({ activeZones, view }) {
       </span>
     </div>
   );
+}
+
+function ProtectedPhotoImage({ photo }) {
+  const [src, setSrc] = useState("");
+
+  useEffect(() => {
+    let objectUrl = "";
+    let mounted = true;
+
+    getProtectedPhotoUrl(photo.url)
+      .then((url) => {
+        objectUrl = url;
+        if (mounted) setSrc(url);
+      })
+      .catch(() => {
+        if (mounted) setSrc("");
+      });
+
+    return () => {
+      mounted = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [photo.url]);
+
+  return <img src={src} alt={photo.view || "Foto de evolucion"} />;
 }
 
 export default function PatientDetail() {
@@ -617,7 +642,7 @@ export default function PatientDetail() {
                   <div className="photo-gallery">
                     {photos.map((photo) => (
                       <article className="photo-card" key={photo.id}>
-                        <img src={getPhotoUrl(photo.url)} alt={photo.view || "Foto de evolucion"} />
+                        <ProtectedPhotoImage photo={photo} />
                         <div>
                           <strong>{photo.view || "Foto clinica"}</strong>
                           <span>{formatDateTime(photo.taken_at || photo.created_at)}</span>

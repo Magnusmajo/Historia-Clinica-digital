@@ -34,7 +34,7 @@ def ensure_patient(patient_id: int, db: Session):
 def validate_times(starts_at, ends_at):
     if ends_at <= starts_at:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="La hora de fin debe ser posterior al inicio",
         )
 
@@ -49,7 +49,7 @@ def normalize_datetime(value):
 def validate_reminder_method(method: str):
     if method not in {"email", "popup"}:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El metodo de recordatorio debe ser email o popup",
         )
 
@@ -101,6 +101,7 @@ def create_appointment(data: AppointmentCreate, db: Session = Depends(get_db)):
         except RuntimeError as exc:
             appointment.google_synced = False
             db.commit()
+            appointment.sync_error = str(exc)
 
     return appointment
 
@@ -139,6 +140,7 @@ def update_appointment(
         except RuntimeError as exc:
             appointment.google_synced = False
             db.commit()
+            appointment.sync_error = str(exc)
 
     return appointment
 

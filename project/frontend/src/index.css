@@ -11,7 +11,7 @@
 
 body {
   margin: 0;
-  min-width: 1180px;
+  min-width: 0;
   min-height: 100vh;
   background: #f4f7fb;
 }
@@ -1419,4 +1419,133 @@ button:disabled {
 .sync-pill.ok {
   color: #147349;
   background: #edfdf5;
+}
+
+@media (max-width: 1120px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 16px;
+  }
+
+  .sidebar-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .new-patient-button,
+  .clinic-chip {
+    display: none;
+  }
+
+  .topbar {
+    min-height: auto;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+
+  .clinical-screen,
+  .implant-workspace,
+  .photo-upload-panel,
+  .quick-patient-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-areas {
+    margin-top: 16px;
+  }
+
+  .metric-grid,
+  .media-grid,
+  .photo-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stepper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .implant-controls {
+    order: -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-content {
+    padding: 14px;
+  }
+
+  .brand h2 {
+    font-size: 18px;
+  }
+
+  .sidebar-nav,
+  .metric-grid,
+  .form-grid,
+  .photo-gallery,
+  .agenda-patient-strip,
+  .appointment-row,
+  .module-row,
+  .patient-table-head,
+  .patient-table-row,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar,
+  .page-heading,
+  .calendar-connect-panel,
+  .section-title,
+  .selected-area-card,
+  .panel-header,
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar-actions,
+  .calendar-actions,
+  .form-actions,
+  .panel-actions {
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .topbar-actions > *,
+  .calendar-actions button,
+  .form-actions button,
+  .panel-actions button,
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .clinical-scalp-map {
+    width: min(340px, 100%);
+  }
+
+  .tool-rail {
+    left: 10px;
+    top: 70px;
+  }
+
+  .tool-rail button {
+    width: 52px;
+    min-height: 40px;
+    font-size: 11px;
+  }
+
+  .read-grid,
+  .procedure-summary,
+  .reminder-row {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-table-head {
+    display: none;
+  }
 }

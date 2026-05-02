@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.implant_area import ImplantAreaRead
 
@@ -13,6 +13,6 @@ class ConsultationRead(BaseModel):
     id: int
     patient_id: int
     date: datetime
-    implant_areas: list[ImplantAreaRead] = []
+    implant_areas: list[ImplantAreaRead] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

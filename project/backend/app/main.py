@@ -1,7 +1,9 @@
 from pathlib import Path
+from secrets import compare_digest
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -27,11 +29,36 @@ from app.models.module_record import ModuleRecord
 from app.models.patient import Patient
 from app.models.patient_photo import PatientPhoto
 
-Base.metadata.create_all(bind=engine)
 settings = get_settings()
+if settings.auto_create_tables:
+    Base.metadata.create_all(bind=engine)
+
 Path("uploads").mkdir(exist_ok=True)
 
 app = FastAPI(title="Historia Clinica Digital", version="1.0.0")
+
+PUBLIC_PATHS = {
+    "/health",
+    "/openapi.json",
+    "/google-calendar/callback",
+}
+PUBLIC_PATH_PREFIXES = ("/docs", "/redoc")
+
+
+@app.middleware("http")
+async def require_api_key(request: Request, call_next):
+    is_public_path = request.url.path in PUBLIC_PATHS or request.url.path.startswith(
+        PUBLIC_PATH_PREFIXES
+    )
+    if settings.require_api_key and request.method != "OPTIONS" and not is_public_path:
+        provided_key = request.headers.get("x-api-key", "")
+        if not provided_key or not compare_digest(provided_key, settings.api_key):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "API key invalida o ausente"},
+            )
+
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,
