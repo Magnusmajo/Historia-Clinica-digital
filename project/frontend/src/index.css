@@ -11,11 +11,7 @@
 
 body {
   margin: 0;
-<<<<<<< HEAD
   min-width: 320px;
-=======
-  min-width: 0;
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
   min-height: 100vh;
   background: #f4f7fb;
 }
@@ -1425,9 +1421,6 @@ button:disabled {
   background: #edfdf5;
 }
 
-<<<<<<< HEAD
-@media (max-width: 1180px) {
-=======
 .compact-action {
   min-height: 36px;
   padding: 0 12px;
@@ -1502,8 +1495,7 @@ button:disabled {
   background: #fff;
 }
 
-@media (max-width: 1120px) {
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
+@media (max-width: 1180px) {
   .app-shell {
     display: block;
   }
@@ -1512,7 +1504,6 @@ button:disabled {
     position: static;
     width: 100%;
     height: auto;
-<<<<<<< HEAD
     gap: 14px;
     padding: 16px;
     box-shadow: none;
@@ -1526,23 +1517,12 @@ button:disabled {
     margin-top: 0;
   }
 
-=======
-    padding: 16px;
-  }
-
-  .sidebar-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .new-patient-button,
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
   .clinic-chip {
     display: none;
   }
 
   .topbar {
     min-height: auto;
-<<<<<<< HEAD
     flex-wrap: wrap;
     gap: 12px;
     padding: 16px 20px;
@@ -1578,13 +1558,8 @@ button:disabled {
 
   .photo-gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-=======
-    gap: 16px;
-    padding: 16px 20px;
   }
 
-  .clinical-screen,
-  .implant-workspace,
   .photo-upload-panel,
   .quick-patient-panel {
     grid-template-columns: 1fr;
@@ -1600,28 +1575,12 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .stepper {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .implant-controls {
     order: -1;
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
   }
 }
 
 @media (max-width: 720px) {
-<<<<<<< HEAD
-  .brand h2 {
-    font-size: 20px;
-  }
-
-  .topbar-actions,
-  .page-heading,
-  .calendar-connect-panel,
-  .section-title,
-  .agenda-patient-strip {
-=======
   .app-content {
     padding: 14px;
   }
@@ -1652,30 +1611,31 @@ button:disabled {
   .selected-area-card,
   .panel-header,
   .toolbar {
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
     align-items: stretch;
     flex-direction: column;
   }
 
   .topbar-actions,
-<<<<<<< HEAD
-  .calendar-actions {
+  .calendar-actions,
+  .form-actions,
+  .panel-actions,
+  .quick-patient-actions {
+    justify-content: stretch;
     flex-wrap: wrap;
   }
 
+  .topbar-actions > *,
   .calendar-actions button,
-  .page-heading button,
   .form-actions button,
   .panel-actions button,
-  .quick-patient-actions button {
+  .quick-patient-actions button,
+  .primary-action,
+  .secondary-action {
     width: 100%;
   }
 
-  .metric-grid,
-  .form-grid,
   .quick-patient-panel,
   .photo-upload-panel,
-  .agenda-patient-strip,
   .patient-column {
     grid-template-columns: 1fr;
   }
@@ -1686,20 +1646,6 @@ button:disabled {
   .history-panel,
   .selected-areas {
     box-shadow: none;
-  }
-
-  .patient-table,
-  .table-list {
-    overflow-x: auto;
-  }
-
-  .patient-table-head,
-  .patient-table-row {
-    min-width: 620px;
-  }
-
-  .table-row {
-    min-width: 520px;
   }
 
   .stepper {
@@ -1725,6 +1671,10 @@ button:disabled {
     padding: 14px;
   }
 
+  .clinical-scalp-map {
+    width: min(340px, 100%);
+  }
+
   .tool-rail {
     position: static;
     display: flex;
@@ -1736,76 +1686,17 @@ button:disabled {
   .tool-rail button {
     width: auto;
     min-width: 78px;
-  }
-
-  .clinical-scalp-map {
-    width: min(360px, 100%);
-  }
-
-  .appointment-row,
-  .module-row {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  .appointment-row .danger,
-  .module-row .danger,
-  .selected-area-card .danger {
-    margin-left: 0;
-  }
-
-=======
-  .calendar-actions,
-  .form-actions,
-  .panel-actions {
-    justify-content: stretch;
-    flex-wrap: wrap;
-  }
-
-  .topbar-actions > *,
-  .calendar-actions button,
-  .form-actions button,
-  .panel-actions button,
-  .primary-action,
-  .secondary-action {
-    width: 100%;
-  }
-
-  .clinical-scalp-map {
-    width: min(340px, 100%);
-  }
-
-  .tool-rail {
-    left: 10px;
-    top: 70px;
-  }
-
-  .tool-rail button {
-    width: 52px;
     min-height: 40px;
     font-size: 11px;
   }
 
   .read-grid,
   .procedure-summary,
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
   .reminder-row {
     grid-template-columns: 1fr;
   }
 
-<<<<<<< HEAD
-  .form-actions,
-  .panel-actions,
-  .quick-patient-actions {
-    flex-wrap: wrap;
-  }
-
   .photo-gallery {
-    grid-template-columns: 1fr;
-  }
-
-  .procedure-summary,
-  .read-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1813,9 +1704,9 @@ button:disabled {
   .selected-area-card {
     align-items: flex-start;
     flex-direction: column;
-=======
+  }
+
   .patient-table-head {
     display: none;
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
   }
 }

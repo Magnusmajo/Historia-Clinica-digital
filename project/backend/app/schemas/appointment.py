@@ -15,7 +15,6 @@ class AppointmentBase(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     reminder_minutes: int = Field(default=1440, ge=0)
     reminder_method: Literal["email", "popup"] = "email"
-<<<<<<< HEAD
 
     @field_validator("title", mode="before")
     @classmethod
@@ -29,8 +28,6 @@ class AppointmentBase(BaseModel):
             value = value.strip()
             return value or None
         return value
-=======
->>>>>>> 8590154e1a428b6a387f3f56918abb8ed5f80ce0
 
 
 class AppointmentCreate(AppointmentBase):
