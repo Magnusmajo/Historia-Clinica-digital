@@ -53,8 +53,10 @@ App: `http://localhost:5173`
 Backend:
 
 ```env
+APP_ENV=development
 DATABASE_URL=sqlite:///./historia_clinica.db
 FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ORIGINS=
 APP_API_KEY=dev-local-api-key
 APP_REQUIRE_API_KEY=true
 APP_REQUIRE_USER_AUTH=true
@@ -73,6 +75,9 @@ VITE_API_URL=http://localhost:8000
 VITE_API_KEY=dev-local-api-key
 ```
 
+En desarrollo el frontend puede usar la API key local por defecto; en builds
+productivos define siempre `VITE_API_KEY`.
+
 Para PostgreSQL, usar por ejemplo:
 
 ```env
@@ -90,8 +95,9 @@ Contrasena: Admin12345
 ```
 
 En produccion cambia `APP_API_KEY`, `VITE_API_KEY`, `SECRET_KEY` y
-`DEFAULT_ADMIN_PASSWORD` antes de levantar la app. Usa HTTPS si expones el
-sistema fuera de tu maquina.
+`DEFAULT_ADMIN_PASSWORD` antes de levantar la app. Si `APP_ENV=production`, el
+backend valida esos valores y no arranca con secretos de desarrollo. Usa HTTPS
+si expones el sistema fuera de tu maquina.
 
 `AUTO_CREATE_TABLES=true` crea tablas automaticamente para desarrollo. En una
 instalacion real conviene desactivarlo y administrar cambios de esquema con

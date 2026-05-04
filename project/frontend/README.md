@@ -20,6 +20,8 @@ VITE_API_KEY=dev-local-api-key
 ```
 
 El valor de `VITE_API_KEY` debe coincidir con `APP_API_KEY` en el backend.
+En desarrollo, si falta `VITE_API_KEY`, la app usa `dev-local-api-key`. En build
+productivo no se inyecta esa clave por defecto.
 
 ## Checks
 

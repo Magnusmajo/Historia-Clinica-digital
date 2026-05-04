@@ -2,6 +2,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -17,6 +19,7 @@ os.environ["GOOGLE_OAUTH_STATE_FILE"] = "test_google_oauth_state"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.config import Settings  # noqa: E402
 from app.database import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.bootstrap import ensure_default_admin  # noqa: E402
@@ -45,6 +48,17 @@ def test_api_key_is_required_for_private_routes():
         assert client.get("/patients/").status_code == 401
         assert client.get("/uploads/missing.png").status_code == 401
         assert client.get("/patients/", headers=HEADERS).status_code == 401
+
+
+def test_production_rejects_insecure_development_defaults(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("APP_API_KEY", "dev-local-api-key")
+    monkeypatch.setenv("SECRET_KEY", "dev-local-secret-change-me")
+    monkeypatch.setenv("DEFAULT_ADMIN_PASSWORD", "Admin12345")
+    monkeypatch.setenv("AUTO_CREATE_TABLES", "true")
+
+    with pytest.raises(RuntimeError, match="Configuracion insegura"):
+        Settings().validate()
 
 
 def authenticated_headers(client: TestClient):

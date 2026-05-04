@@ -38,6 +38,7 @@ from app.services.audit import write_audit_log
 from app.services.bootstrap import ensure_default_admin
 
 settings = get_settings()
+settings.validate()
 if settings.auto_create_tables:
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
@@ -132,7 +133,7 @@ async def require_api_key(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin, "http://127.0.0.1:5173"],
+    allow_origins=settings.frontend_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

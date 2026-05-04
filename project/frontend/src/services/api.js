@@ -1,11 +1,13 @@
 import axios from "axios";
 
+const apiKey =
+  import.meta.env.VITE_API_KEY ||
+  (import.meta.env.DEV ? "dev-local-api-key" : "");
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
   timeout: 10000,
-  headers: {
-    "X-API-Key": import.meta.env.VITE_API_KEY || "dev-local-api-key",
-  },
+  headers: apiKey ? { "X-API-Key": apiKey } : {},
 });
 
 function formatApiDetail(detail) {
