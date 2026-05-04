@@ -7,9 +7,23 @@ from app.database import get_db
 from app.models.appointment import Appointment
 from app.models.patient import Patient
 from app.schemas.appointment import AppointmentCreate, AppointmentRead, AppointmentUpdate
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 from app.services import google_calendar
 
-router = APIRouter(prefix="/appointments", tags=["appointments"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/appointments",
+    tags=["appointments"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 
 def get_appointment_or_404(appointment_id: int, db: Session):
@@ -34,7 +48,7 @@ def ensure_patient(patient_id: int, db: Session):
 def validate_times(starts_at, ends_at):
     if ends_at <= starts_at:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="La hora de fin debe ser posterior al inicio",
         )
 
@@ -49,7 +63,7 @@ def normalize_datetime(value):
 def validate_reminder_method(method: str):
     if method not in {"email", "popup"}:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El metodo de recordatorio debe ser email o popup",
         )
 
@@ -71,7 +85,11 @@ def get_appointments(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED)
-def create_appointment(data: AppointmentCreate, db: Session = Depends(get_db)):
+def create_appointment(
+    data: AppointmentCreate,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     ensure_patient(data.patient_id, db)
     starts_at = normalize_datetime(data.starts_at)
     ends_at = normalize_datetime(data.ends_at)
@@ -101,6 +119,7 @@ def create_appointment(data: AppointmentCreate, db: Session = Depends(get_db)):
         except RuntimeError as exc:
             appointment.google_synced = False
             db.commit()
+            appointment.sync_error = str(exc)
 
     return appointment
 
@@ -110,6 +129,7 @@ def update_appointment(
     appointment_id: int,
     data: AppointmentUpdate,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     appointment = get_appointment_or_404(appointment_id, db)
     update_data = data.model_dump(exclude_unset=True, exclude={"sync_google"})
@@ -139,12 +159,17 @@ def update_appointment(
         except RuntimeError as exc:
             appointment.google_synced = False
             db.commit()
+            appointment.sync_error = str(exc)
 
     return appointment
 
 
 @router.post("/{appointment_id}/sync", response_model=AppointmentRead)
-def sync_appointment(appointment_id: int, db: Session = Depends(get_db)):
+def sync_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     appointment = get_appointment_or_404(appointment_id, db)
     try:
         try_sync_google(appointment)
@@ -157,7 +182,11 @@ def sync_appointment(appointment_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
+def delete_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
+):
     appointment = get_appointment_or_404(appointment_id, db)
     google_event_id = appointment.google_event_id
 

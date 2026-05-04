@@ -7,8 +7,19 @@ from app.models.consultation import Consultation
 from app.models.implant_area import ImplantArea
 from app.models.module_record import ModuleRecord
 from app.models.patient import Patient
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 
-router = APIRouter(prefix="/stats", tags=["stats"])
+router = APIRouter(
+    prefix="/stats",
+    tags=["stats"],
+    dependencies=[Depends(require_roles(ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER))],
+)
 
 
 @router.get("/summary")

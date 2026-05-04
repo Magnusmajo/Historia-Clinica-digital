@@ -5,8 +5,15 @@ from app.database import get_db
 from app.models.consultation import Consultation
 from app.models.implant_area import ImplantArea
 from app.schemas.implant_area import ImplantAreaCreate, ImplantAreaRead
+from app.security import ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, require_roles
 
-router = APIRouter(prefix="/implant-areas", tags=["implant-areas"])
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/implant-areas",
+    tags=["implant-areas"],
+    dependencies=[Depends(require_roles(*WRITE_ROLES))],
+)
 
 
 @router.post("/", response_model=ImplantAreaRead, status_code=status.HTTP_201_CREATED)

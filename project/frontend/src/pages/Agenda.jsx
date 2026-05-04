@@ -218,7 +218,9 @@ export default function Agenda() {
       setAppointments((current) => [...current, appointment]);
       setForm(initialForm);
       setNotice(
-        appointment.google_synced
+        appointment.sync_error
+          ? `Consulta agendada localmente. Google Calendar no sincronizo: ${appointment.sync_error}`
+          : appointment.google_synced
           ? "Consulta agendada y sincronizada con Google Calendar."
           : "Consulta agendada localmente. Puedes sincronizarla cuando conectes Google."
       );

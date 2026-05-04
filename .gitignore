@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
 .env
 .venv/
@@ -9,12 +10,15 @@ project/backend/venv/
 project/backend/*.db
 project/backend/credentials.json
 project/backend/token.json
+project/backend/.google_oauth_state
 project/backend/uploads/
 
 node_modules/
+.npm-cache/
 dist/
 build/
 project/frontend/node_modules/
+project/frontend/.npm-cache/
 project/frontend/dist/
 
 *.log

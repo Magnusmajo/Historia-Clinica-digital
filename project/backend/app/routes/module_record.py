@@ -8,8 +8,22 @@ from app.schemas.module_record import (
     ModuleRecordRead,
     ModuleRecordUpdate,
 )
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_STAFF,
+    ROLE_VIEWER,
+    require_roles,
+)
 
-router = APIRouter(prefix="/modules", tags=["modules"])
+READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
+WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
+
+router = APIRouter(
+    prefix="/modules",
+    tags=["modules"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
 
 ALLOWED_MODULES = {
     "agenda",
@@ -46,6 +60,7 @@ def create_module_record(
     module: str,
     data: ModuleRecordCreate,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     validate_module(module)
     record = ModuleRecord(module=module, payload=data.payload)
@@ -61,6 +76,7 @@ def update_module_record(
     record_id: int,
     data: ModuleRecordUpdate,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     validate_module(module)
     record = (
@@ -83,6 +99,7 @@ def delete_module_record(
     module: str,
     record_id: int,
     db: Session = Depends(get_db),
+    _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     validate_module(module)
     record = (
