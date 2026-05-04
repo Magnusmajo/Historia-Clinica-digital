@@ -744,6 +744,8 @@ export default function PatientDetail() {
               <span>Foliculos estimados</span>
               <div className="inline-input">
                 <input
+                  type="number"
+                  min="0"
                   value={follicles}
                   onChange={(event) => setFollicles(event.target.value)}
                 />
@@ -766,7 +768,9 @@ export default function PatientDetail() {
 
             <div className="panel-actions">
               <button onClick={clearArea}>Cancelar</button>
-              <button>Anterior</button>
+              <button onClick={() => setActiveStep((current) => Math.max(0, current - 1))}>
+                Anterior
+              </button>
               <button className="primary" onClick={saveArea} disabled={saving}>
                 {saving ? "Guardando..." : "Guardar area"}
               </button>

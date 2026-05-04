@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ImplantAreaBase(BaseModel):
     drawing_data: dict[str, Any] = Field(default_factory=dict)
-    grafts: int = 0
+    grafts: int = Field(default=0, ge=0)
 
 
 class ImplantAreaCreate(ImplantAreaBase):

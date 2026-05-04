@@ -18,5 +18,6 @@ project/frontend/node_modules/
 project/frontend/dist/
 
 *.log
+*.err
 vite-dev.log
 vite-dev.err

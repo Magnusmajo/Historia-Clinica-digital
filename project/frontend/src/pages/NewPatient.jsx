@@ -32,6 +32,9 @@ export default function NewPatient() {
     if (!form.name.trim()) return "El nombre es obligatorio";
     if (!form.ci.trim()) return "La CI es obligatoria";
     if (form.age && Number.isNaN(Number(form.age))) return "Edad invalida";
+    if (form.age && (Number(form.age) < 0 || Number(form.age) > 130)) {
+      return "La edad debe estar entre 0 y 130";
+    }
     return "";
   };
 
@@ -50,10 +53,10 @@ export default function NewPatient() {
       ci: form.ci.trim(),
       age: form.age ? Number(form.age) : null,
       sex: form.sex || null,
-      phone: form.phone || null,
-      email: form.email || null,
-      occupation: form.occupation || null,
-      city: form.city || null,
+      phone: form.phone.trim() || null,
+      email: form.email.trim() || null,
+      occupation: form.occupation.trim() || null,
+      city: form.city.trim() || null,
     };
 
     try {
@@ -92,7 +95,14 @@ export default function NewPatient() {
           </label>
           <label className="field">
             <span>Edad</span>
-            <input name="age" value={form.age} onChange={handleChange} />
+            <input
+              name="age"
+              type="number"
+              min="0"
+              max="130"
+              value={form.age}
+              onChange={handleChange}
+            />
           </label>
           <label className="field">
             <span>Sexo</span>
@@ -109,7 +119,12 @@ export default function NewPatient() {
           </label>
           <label className="field">
             <span>Email</span>
-            <input name="email" value={form.email} onChange={handleChange} />
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+            />
           </label>
           <label className="field">
             <span>Ocupacion</span>

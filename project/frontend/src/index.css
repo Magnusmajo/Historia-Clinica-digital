@@ -11,7 +11,7 @@
 
 body {
   margin: 0;
-  min-width: 1180px;
+  min-width: 320px;
   min-height: 100vh;
   background: #f4f7fb;
 }
@@ -1419,4 +1419,206 @@ button:disabled {
 .sync-pill.ok {
   color: #147349;
   background: #edfdf5;
+}
+
+@media (max-width: 1180px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    gap: 14px;
+    padding: 16px;
+    box-shadow: none;
+  }
+
+  .sidebar-nav {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+
+  .new-patient-button {
+    margin-top: 0;
+  }
+
+  .clinic-chip {
+    display: none;
+  }
+
+  .topbar {
+    min-height: auto;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .app-content {
+    padding: 16px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clinical-screen {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .back-button {
+    grid-column: 1 / -1;
+  }
+
+  .stepper {
+    grid-template-columns: repeat(3, minmax(98px, 1fr));
+  }
+
+  .implant-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .brand h2 {
+    font-size: 20px;
+  }
+
+  .topbar-actions,
+  .page-heading,
+  .calendar-connect-panel,
+  .section-title,
+  .agenda-patient-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar-actions,
+  .calendar-actions {
+    flex-wrap: wrap;
+  }
+
+  .calendar-actions button,
+  .page-heading button,
+  .form-actions button,
+  .panel-actions button,
+  .quick-patient-actions button {
+    width: 100%;
+  }
+
+  .metric-grid,
+  .form-grid,
+  .quick-patient-panel,
+  .photo-upload-panel,
+  .agenda-patient-strip,
+  .patient-column {
+    grid-template-columns: 1fr;
+  }
+
+  .data-panel,
+  .form-panel,
+  .patient-card,
+  .history-panel,
+  .selected-areas {
+    box-shadow: none;
+  }
+
+  .patient-table,
+  .table-list {
+    overflow-x: auto;
+  }
+
+  .patient-table-head,
+  .patient-table-row {
+    min-width: 620px;
+  }
+
+  .table-row {
+    min-width: 520px;
+  }
+
+  .stepper {
+    grid-template-columns: repeat(2, minmax(112px, 1fr));
+    padding: 14px;
+  }
+
+  .implant-workspace {
+    padding: 12px;
+  }
+
+  .section-title {
+    display: grid;
+  }
+
+  .segmented-control {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .scalp-board {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  .tool-rail {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .tool-rail button {
+    width: auto;
+    min-width: 78px;
+  }
+
+  .clinical-scalp-map {
+    width: min(360px, 100%);
+  }
+
+  .appointment-row,
+  .module-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .appointment-row .danger,
+  .module-row .danger,
+  .selected-area-card .danger {
+    margin-left: 0;
+  }
+
+  .reminder-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions,
+  .panel-actions,
+  .quick-patient-actions {
+    flex-wrap: wrap;
+  }
+
+  .photo-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .procedure-summary,
+  .read-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .document-list div,
+  .selected-area-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
