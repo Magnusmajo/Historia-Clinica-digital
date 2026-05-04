@@ -114,6 +114,37 @@ def test_appointment_requires_valid_time_window():
         assert response.status_code == 422
 
 
+def test_appointment_patch_does_not_sync_google_by_default():
+    with TestClient(app) as client:
+        auth_headers = authenticated_headers(client)
+        patient = client.post(
+            "/patients/",
+            headers=auth_headers,
+            json={"name": "Paciente Sin Sync", "ci": "55667788"},
+        ).json()
+        appointment = client.post(
+            "/appointments/",
+            headers=auth_headers,
+            json={
+                "patient_id": patient["id"],
+                "title": "Consulta inicial",
+                "starts_at": "2026-05-01T10:00:00",
+                "ends_at": "2026-05-01T10:45:00",
+                "sync_google": False,
+            },
+        ).json()
+
+        response = client.patch(
+            f"/appointments/{appointment['id']}",
+            headers=auth_headers,
+            json={"title": "Consulta actualizada"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["title"] == "Consulta actualizada"
+        assert response.json()["sync_error"] is None
+
+
 def test_photo_upload_rejects_spoofed_content_type():
     with TestClient(app) as client:
         auth_headers = authenticated_headers(client)

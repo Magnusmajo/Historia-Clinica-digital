@@ -43,7 +43,7 @@ class AppointmentUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     reminder_minutes: int | None = Field(default=None, ge=0)
     reminder_method: Literal["email", "popup"] | None = None
-    sync_google: bool = True
+    sync_google: bool = False
 
     @field_validator("title", mode="before")
     @classmethod

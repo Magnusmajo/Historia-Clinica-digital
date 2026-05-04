@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -89,6 +90,10 @@ def create_access_token(user: User):
 def decode_access_token(token: str):
     try:
         header_value, payload_value, signature_value = token.split(".", 2)
+        header = json.loads(_b64url_decode(header_value))
+        if header.get("alg") != "HS256" or header.get("typ") != "JWT":
+            return None
+
         signing_input = f"{header_value}.{payload_value}"
         expected_signature = hmac.new(
             get_settings().secret_key.encode("utf-8"),
@@ -105,7 +110,7 @@ def decode_access_token(token: str):
         if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
             return None
         return payload
-    except (ValueError, TypeError, json.JSONDecodeError):
+    except (binascii.Error, ValueError, TypeError, json.JSONDecodeError):
         return None
 
 
@@ -129,7 +134,15 @@ def get_current_user(
             detail="Sesion invalida o expirada",
         )
 
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion invalida o expirada",
+        ) from exc
+
+    user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

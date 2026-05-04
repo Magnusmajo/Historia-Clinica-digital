@@ -227,7 +227,7 @@ function ProtectedPhotoImage({ photo }) {
 
     return () => {
       mounted = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrl.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
     };
   }, [photo.url]);
 

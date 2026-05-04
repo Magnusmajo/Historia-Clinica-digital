@@ -9,8 +9,8 @@ export default function Login() {
   const location = useLocation();
   const { isAuthenticated, login } = useAuth();
   const [form, setForm] = useState({
-    email: "admin@elara.com",
-    password: "Admin12345",
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
