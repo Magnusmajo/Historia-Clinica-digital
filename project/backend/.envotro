@@ -1,0 +1,2 @@
+DATABASE_URL=sqlite:///./historia_clinica.db
+FRONTEND_ORIGIN=http://localhost:5173

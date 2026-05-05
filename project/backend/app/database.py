@@ -5,6 +5,7 @@ from app.config import get_settings
 
 DATABASE_URL = get_settings().database_url
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+print("DB:", DATABASE_URL)
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
