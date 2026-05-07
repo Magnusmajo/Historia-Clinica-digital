@@ -15,6 +15,7 @@ from app.security import (
     ROLE_VIEWER,
     require_roles,
 )
+from app.validation import sanitize_json
 
 READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
 WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
@@ -63,7 +64,7 @@ def create_module_record(
     _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     validate_module(module)
-    record = ModuleRecord(module=module, payload=data.payload)
+    record = ModuleRecord(module=module, payload=sanitize_json(data.payload))
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -88,7 +89,7 @@ def update_module_record(
     if not record:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
 
-    record.payload = data.payload
+    record.payload = sanitize_json(data.payload)
     db.commit()
     db.refresh(record)
     return record

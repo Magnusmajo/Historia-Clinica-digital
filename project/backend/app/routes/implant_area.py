@@ -6,6 +6,7 @@ from app.models.consultation import Consultation
 from app.models.implant_area import ImplantArea
 from app.schemas.implant_area import ImplantAreaCreate, ImplantAreaRead
 from app.security import ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, require_roles
+from app.validation import sanitize_json
 
 WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
 
@@ -27,7 +28,9 @@ def create_implant_area(data: ImplantAreaCreate, db: Session = Depends(get_db)):
     if not consultation:
         raise HTTPException(status_code=404, detail="Consulta no encontrada")
 
-    area = ImplantArea(**data.model_dump())
+    area_data = data.model_dump()
+    area_data["drawing_data"] = sanitize_json(area_data.get("drawing_data") or {})
+    area = ImplantArea(**area_data)
     db.add(area)
     db.commit()
     db.refresh(area)

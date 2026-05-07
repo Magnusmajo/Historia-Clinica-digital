@@ -7,7 +7,12 @@ class ImplantArea(Base):
     __tablename__ = "implant_areas"
 
     id = Column(Integer, primary_key=True, index=True)
-    consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=False)
+    consultation_id = Column(
+        Integer,
+        ForeignKey("consultations.id"),
+        nullable=False,
+        index=True,
+    )
     drawing_data = Column(JSON)
     grafts = Column(Integer, default=0)
 

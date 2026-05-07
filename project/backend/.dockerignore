@@ -1,0 +1,14 @@
+.env
+.venv
+venv
+__pycache__
+.pytest_cache
+*.pyc
+*.pyo
+*.db
+uploads
+credentials.json
+token.json
+.google_oauth_state
+backend-dev.log
+backend-dev.err

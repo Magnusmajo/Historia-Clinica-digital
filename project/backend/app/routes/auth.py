@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -15,10 +16,14 @@ from app.schemas.auth import (
 )
 from app.security import (
     ROLE_ADMIN,
-    create_access_token,
+    clear_auth_cookies,
+    decode_refresh_token,
+    decode_access_token,
+    extract_access_token,
     get_current_user,
     hash_password,
     require_roles,
+    set_auth_cookies,
     verify_password,
 )
 from app.services.audit import write_audit_log
@@ -27,7 +32,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+def login(
+    data: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not user.is_active or not verify_password(data.password, user.password_hash):
         write_audit_log(
@@ -44,7 +54,7 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
             detail="Email o contrasena invalidos",
         )
 
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
     write_audit_log(
@@ -55,7 +65,85 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
         request=request,
         status_code=200,
     )
-    return {"access_token": create_access_token(user), "user": user}
+    access_token, csrf_token = set_auth_cookies(response, user)
+    return {
+        "access_token": access_token,
+        "csrf_token": csrf_token,
+        "expires_in": get_settings().access_token_minutes * 60,
+        "user": user,
+    }
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_session(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    settings = get_settings()
+    payload = decode_refresh_token(request.cookies.get(settings.refresh_cookie_name, ""))
+    if not payload:
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion invalida o expirada",
+        )
+
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError) as exc:
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion invalida o expirada",
+        ) from exc
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario inactivo o no encontrado",
+        )
+    if int(payload.get("ver", -1)) != user.token_version:
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion revocada",
+        )
+
+    access_token, csrf_token = set_auth_cookies(response, user)
+    return {
+        "access_token": access_token,
+        "csrf_token": csrf_token,
+        "expires_in": settings.access_token_minutes * 60,
+        "user": user,
+    }
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    payload = decode_access_token(extract_access_token(request) or "")
+    if not payload:
+        payload = decode_refresh_token(
+            request.cookies.get(get_settings().refresh_cookie_name, "")
+        )
+    if payload:
+        try:
+            user_id = int(payload["sub"])
+        except (KeyError, TypeError, ValueError):
+            user_id = None
+        if user_id is not None:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.token_version += 1
+                db.commit()
+    clear_auth_cookies(response)
+    return None
 
 
 @router.get("/me", response_model=UserRead)
@@ -124,6 +212,7 @@ def update_user(
         update_data["email"] = str(update_data["email"]).lower()
     if "password" in update_data:
         user.password_hash = hash_password(update_data.pop("password"))
+        user.token_version += 1
 
     for key, value in update_data.items():
         setattr(user, key, value)

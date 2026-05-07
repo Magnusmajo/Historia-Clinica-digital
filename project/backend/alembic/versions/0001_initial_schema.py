@@ -40,9 +40,10 @@ def upgrade():
         sa.Column("password_hash", sa.String(), nullable=False),
         sa.Column("role", sa.String(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("last_login_at", sa.DateTime(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("token_version", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
     )
@@ -54,20 +55,32 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("patient_id", sa.Integer(), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
-        sa.Column("starts_at", sa.DateTime(), nullable=False),
-        sa.Column("ends_at", sa.DateTime(), nullable=False),
+        sa.Column("starts_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("ends_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("location", sa.String(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("reminder_minutes", sa.Integer(), nullable=False),
         sa.Column("reminder_method", sa.String(), nullable=False),
         sa.Column("google_event_id", sa.String(), nullable=True),
         sa.Column("google_synced", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_appointments_id"), "appointments", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_appointments_patient_id"),
+        "appointments",
+        ["patient_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_appointments_starts_at"),
+        "appointments",
+        ["starts_at"],
+        unique=False,
+    )
     op.create_index(
         op.f("ix_appointments_google_event_id"),
         "appointments",
@@ -88,7 +101,7 @@ def upgrade():
         sa.Column("ip_address", sa.String(), nullable=True),
         sa.Column("user_agent", sa.String(), nullable=True),
         sa.Column("details", sa.JSON(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -108,30 +121,42 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("patient_id", sa.Integer(), nullable=False),
         sa.Column("notes", sa.JSON(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("patient_id", name="uq_clinical_notes_patient"),
     )
     op.create_index(op.f("ix_clinical_notes_id"), "clinical_notes", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_clinical_notes_patient_id"),
+        "clinical_notes",
+        ["patient_id"],
+        unique=False,
+    )
 
     op.create_table(
         "consultations",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("patient_id", sa.Integer(), nullable=False),
-        sa.Column("date", sa.DateTime(), nullable=True),
+        sa.Column("date", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_consultations_id"), "consultations", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_consultations_patient_id"),
+        "consultations",
+        ["patient_id"],
+        unique=False,
+    )
 
     op.create_table(
         "module_records",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("module", sa.String(), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_module_records_id"), "module_records", ["id"], unique=False)
@@ -153,12 +178,30 @@ def upgrade():
         sa.Column("url", sa.String(), nullable=False),
         sa.Column("view", sa.String(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("taken_at", sa.DateTime(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("taken_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_patient_photos_id"), "patient_photos", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_patient_photos_patient_id"),
+        "patient_photos",
+        ["patient_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_patient_photos_taken_at"),
+        "patient_photos",
+        ["taken_at"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_patient_photos_created_at"),
+        "patient_photos",
+        ["created_at"],
+        unique=False,
+    )
 
     op.create_table(
         "implant_areas",
@@ -170,18 +213,30 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_implant_areas_id"), "implant_areas", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_implant_areas_consultation_id"),
+        "implant_areas",
+        ["consultation_id"],
+        unique=False,
+    )
 
 
 def downgrade():
+    op.drop_index(op.f("ix_implant_areas_consultation_id"), table_name="implant_areas")
     op.drop_index(op.f("ix_implant_areas_id"), table_name="implant_areas")
     op.drop_table("implant_areas")
+    op.drop_index(op.f("ix_patient_photos_created_at"), table_name="patient_photos")
+    op.drop_index(op.f("ix_patient_photos_taken_at"), table_name="patient_photos")
+    op.drop_index(op.f("ix_patient_photos_patient_id"), table_name="patient_photos")
     op.drop_index(op.f("ix_patient_photos_id"), table_name="patient_photos")
     op.drop_table("patient_photos")
     op.drop_index(op.f("ix_module_records_module"), table_name="module_records")
     op.drop_index(op.f("ix_module_records_id"), table_name="module_records")
     op.drop_table("module_records")
+    op.drop_index(op.f("ix_consultations_patient_id"), table_name="consultations")
     op.drop_index(op.f("ix_consultations_id"), table_name="consultations")
     op.drop_table("consultations")
+    op.drop_index(op.f("ix_clinical_notes_patient_id"), table_name="clinical_notes")
     op.drop_index(op.f("ix_clinical_notes_id"), table_name="clinical_notes")
     op.drop_table("clinical_notes")
     op.drop_index(op.f("ix_audit_logs_resource_id"), table_name="audit_logs")
@@ -191,6 +246,8 @@ def downgrade():
     op.drop_index(op.f("ix_audit_logs_id"), table_name="audit_logs")
     op.drop_table("audit_logs")
     op.drop_index(op.f("ix_appointments_google_event_id"), table_name="appointments")
+    op.drop_index(op.f("ix_appointments_starts_at"), table_name="appointments")
+    op.drop_index(op.f("ix_appointments_patient_id"), table_name="appointments")
     op.drop_index(op.f("ix_appointments_id"), table_name="appointments")
     op.drop_table("appointments")
     op.drop_index(op.f("ix_users_email"), table_name="users")

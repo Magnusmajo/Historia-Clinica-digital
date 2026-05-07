@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 
 .env
+.env.*
 .venv/
 venv/
 project/backend/venv/

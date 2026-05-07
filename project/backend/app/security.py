@@ -6,7 +6,7 @@ import json
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -24,6 +24,8 @@ CLINICAL_ROLES = {ROLE_ADMIN, ROLE_DOCTOR}
 
 HASH_ALGORITHM = "pbkdf2_sha256"
 HASH_ITERATIONS = 390000
+ACCESS_TOKEN_TYPE = "access"
+REFRESH_TOKEN_TYPE = "refresh"
 
 
 def _b64url_encode(value: bytes):
@@ -62,15 +64,18 @@ def verify_password(password: str, password_hash: str):
         return False
 
 
-def create_access_token(user: User):
+def _create_token(user: User, token_type: str, expires_delta: timedelta):
     settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
         "email": user.email,
         "role": user.role,
+        "ver": user.token_version,
+        "type": token_type,
+        "jti": secrets.token_urlsafe(24),
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=settings.access_token_minutes)).timestamp()),
+        "exp": int((now + expires_delta).timestamp()),
     }
     header = {"alg": "HS256", "typ": "JWT"}
     signing_input = ".".join(
@@ -87,7 +92,23 @@ def create_access_token(user: User):
     return f"{signing_input}.{_b64url_encode(signature)}"
 
 
-def decode_access_token(token: str):
+def create_access_token(user: User):
+    return _create_token(
+        user,
+        ACCESS_TOKEN_TYPE,
+        timedelta(minutes=get_settings().access_token_minutes),
+    )
+
+
+def create_refresh_token(user: User):
+    return _create_token(
+        user,
+        REFRESH_TOKEN_TYPE,
+        timedelta(days=get_settings().refresh_token_days),
+    )
+
+
+def _decode_token(token: str, expected_type: str):
     try:
         header_value, payload_value, signature_value = token.split(".", 2)
         header = json.loads(_b64url_decode(header_value))
@@ -107,11 +128,21 @@ def decode_access_token(token: str):
             return None
 
         payload = json.loads(_b64url_decode(payload_value))
+        if payload.get("type") != expected_type:
+            return None
         if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
             return None
         return payload
     except (binascii.Error, ValueError, TypeError, json.JSONDecodeError):
         return None
+
+
+def decode_access_token(token: str):
+    return _decode_token(token, ACCESS_TOKEN_TYPE)
+
+
+def decode_refresh_token(token: str):
+    return _decode_token(token, REFRESH_TOKEN_TYPE)
 
 
 def extract_bearer_token(request: Request):
@@ -122,11 +153,72 @@ def extract_bearer_token(request: Request):
     return token
 
 
+def extract_access_token(request: Request):
+    return extract_bearer_token(request) or request.cookies.get(
+        get_settings().access_cookie_name
+    )
+
+
+def generate_csrf_token():
+    return secrets.token_urlsafe(32)
+
+
+def _cookie_options(max_age: int, *, http_only: bool):
+    settings = get_settings()
+    return {
+        "max_age": max_age,
+        "httponly": http_only,
+        "secure": settings.cookie_secure,
+        "samesite": settings.cookie_samesite,
+        "domain": settings.cookie_domain,
+        "path": "/",
+    }
+
+
+def set_auth_cookies(response: Response, user: User):
+    settings = get_settings()
+    access_token = create_access_token(user)
+    refresh_token = create_refresh_token(user)
+    csrf_token = generate_csrf_token()
+    response.set_cookie(
+        settings.access_cookie_name,
+        access_token,
+        **_cookie_options(settings.access_token_minutes * 60, http_only=True),
+    )
+    response.set_cookie(
+        settings.refresh_cookie_name,
+        refresh_token,
+        **_cookie_options(settings.refresh_token_days * 24 * 60 * 60, http_only=True),
+    )
+    response.set_cookie(
+        settings.csrf_cookie_name,
+        csrf_token,
+        **_cookie_options(settings.refresh_token_days * 24 * 60 * 60, http_only=False),
+    )
+    return access_token, csrf_token
+
+
+def clear_auth_cookies(response: Response):
+    settings = get_settings()
+    for name in (
+        settings.access_cookie_name,
+        settings.refresh_cookie_name,
+        settings.csrf_cookie_name,
+    ):
+        response.delete_cookie(
+            name,
+            path="/",
+            domain=settings.cookie_domain,
+            secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite,
+        )
+
+
 def get_current_user(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    token = extract_bearer_token(request)
+    token = extract_access_token(request)
     payload = decode_access_token(token or "")
     if not payload:
         raise HTTPException(
@@ -147,6 +239,11 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario inactivo o no encontrado",
+        )
+    if int(payload.get("ver", -1)) != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion revocada",
         )
     return user
 

@@ -1,14 +1,23 @@
 import axios from "axios";
 
-const apiKey =
-  import.meta.env.VITE_API_KEY ||
-  (import.meta.env.DEV ? "dev-local-api-key" : "");
+const apiKey = import.meta.env.VITE_API_KEY || "";
+const csrfCookieName = import.meta.env.VITE_CSRF_COOKIE_NAME || "hcd_csrf";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
   timeout: 10000,
+  withCredentials: true,
   headers: apiKey ? { "X-API-Key": apiKey } : {},
 });
+
+let refreshPromise = null;
+
+function readCookie(name) {
+  const cookie = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return cookie ? cookie.split("=").slice(1).join("=") : "";
+}
 
 function formatApiDetail(detail) {
   if (typeof detail === "string") return detail;
@@ -28,17 +37,42 @@ function formatApiDetail(detail) {
 }
 
 api.interceptors.request.use((config) => {
-  const token = window.localStorage.getItem("authToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const method = (config.method || "get").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrfToken = readCookie(csrfCookieName);
+    if (csrfToken) {
+      config.headers["X-CSRF-Token"] = decodeURIComponent(csrfToken);
+    }
   }
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error?.config;
+    const status = error?.response?.status;
+    const url = originalRequest?.url || "";
+    const canRefresh =
+      status === 401 &&
+      originalRequest &&
+      !originalRequest.__retried &&
+      !url.includes("/auth/login") &&
+      !url.includes("/auth/refresh");
+
+    if (canRefresh) {
+      originalRequest.__retried = true;
+      try {
+        refreshPromise =
+          refreshPromise || api.post("/auth/refresh").finally(() => {
+            refreshPromise = null;
+          });
+        await refreshPromise;
+        return api(originalRequest);
+      } catch {
+        window.dispatchEvent(new Event("auth:logout"));
+      }
+    } else if (status === 401 && !url.includes("/auth/login")) {
       window.dispatchEvent(new Event("auth:logout"));
     }
     return Promise.reject(error);

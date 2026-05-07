@@ -10,6 +10,15 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
+export const refreshSession = async () => {
+  const response = await api.post("/auth/refresh");
+  return response.data.user;
+};
+
+export const logout = async () => {
+  await api.post("/auth/logout");
+};
+
 export const getUsers = async () => {
   const response = await api.get("/auth/users");
   return response.data;

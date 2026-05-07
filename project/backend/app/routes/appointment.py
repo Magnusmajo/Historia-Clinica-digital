@@ -54,10 +54,11 @@ def validate_times(starts_at, ends_at):
 
 
 def normalize_datetime(value):
+    timezone = ZoneInfo(get_settings().app_timezone)
     if value.tzinfo is None:
-        return value
+        return value.replace(tzinfo=timezone)
 
-    return value.astimezone(ZoneInfo(get_settings().app_timezone)).replace(tzinfo=None)
+    return value.astimezone(timezone)
 
 
 def validate_reminder_method(method: str):

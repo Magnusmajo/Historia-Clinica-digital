@@ -5,7 +5,9 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from zoneinfo import ZoneInfo
 
+from app.config import get_settings
 from app.database import get_db
 from app.models.patient import Patient
 from app.models.patient_photo import PatientPhoto
@@ -17,6 +19,7 @@ from app.security import (
     ROLE_VIEWER,
     require_roles,
 )
+from app.validation import sanitize_text
 
 READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
 WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
@@ -27,9 +30,11 @@ router = APIRouter(
     dependencies=[Depends(require_roles(*READ_ROLES))],
 )
 
-UPLOAD_ROOT = Path("uploads") / "patients"
-MAX_FILE_SIZE = 12 * 1024 * 1024
+settings = get_settings()
+UPLOAD_ROOT = settings.upload_dir / "patients"
+MAX_FILE_SIZE = settings.max_upload_mb * 1024 * 1024
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 IMAGE_SIGNATURES = (
     ("image/jpeg", ".jpg", lambda content: content.startswith(b"\xff\xd8\xff")),
     ("image/png", ".png", lambda content: content.startswith(b"\x89PNG\r\n\x1a\n")),
@@ -54,7 +59,10 @@ def parse_taken_at(value: str | None):
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=ZoneInfo(settings.app_timezone))
+        return parsed.astimezone(ZoneInfo(settings.app_timezone))
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -100,7 +108,13 @@ async def read_limited_file(file: UploadFile):
 
 def safe_upload_path(path_value: str):
     root = UPLOAD_ROOT.resolve()
-    path = Path(path_value).resolve()
+    raw_path = Path(path_value)
+    if raw_path.is_absolute():
+        path = raw_path.resolve()
+    elif raw_path.parts and raw_path.parts[0] == settings.upload_dir.name:
+        path = (settings.upload_dir.parent / raw_path).resolve()
+    else:
+        path = (settings.upload_dir / raw_path).resolve()
     try:
         path.relative_to(root)
     except ValueError as exc:
@@ -109,6 +123,15 @@ def safe_upload_path(path_value: str):
             detail="Ruta de archivo invalida",
         ) from exc
     return path
+
+
+def validate_original_extension(filename: str | None):
+    suffix = Path(filename or "").suffix.lower()
+    if suffix not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Extension no permitida. Usa JPG, PNG o WebP.",
+        )
 
 
 @router.get("/", response_model=list[PatientPhotoRead])
@@ -133,6 +156,7 @@ async def upload_patient_photo(
     _user=Depends(require_roles(*WRITE_ROLES)),
 ):
     ensure_patient(patient_id, db)
+    validate_original_extension(file.filename)
 
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -155,7 +179,7 @@ async def upload_patient_photo(
     file_path = patient_dir / filename
     file_path.write_bytes(content)
 
-    relative_path = file_path.as_posix()
+    relative_path = file_path.relative_to(settings.upload_dir).as_posix()
     photo = PatientPhoto(
         patient_id=patient_id,
         filename=filename,
@@ -163,8 +187,8 @@ async def upload_patient_photo(
         content_type=detected_content_type,
         file_path=relative_path,
         url=f"/uploads/patients/{patient_id}/{filename}",
-        view=view or None,
-        notes=notes or None,
+        view=sanitize_text(view, max_length=80),
+        notes=sanitize_text(notes, max_length=2000),
         taken_at=parse_taken_at(taken_at),
     )
     db.add(photo)

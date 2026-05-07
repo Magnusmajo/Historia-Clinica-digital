@@ -12,6 +12,7 @@ from app.security import (
     ROLE_VIEWER,
     require_roles,
 )
+from app.validation import sanitize_json
 
 READ_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF, ROLE_VIEWER)
 WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
@@ -44,11 +45,12 @@ def upsert_clinical_notes(
 ):
     ensure_patient(patient_id, db)
     note = db.query(ClinicalNote).filter(ClinicalNote.patient_id == patient_id).first()
+    sanitized_notes = sanitize_json(data.notes)
 
     if note:
-        note.notes = data.notes
+        note.notes = sanitized_notes
     else:
-        note = ClinicalNote(patient_id=patient_id, notes=data.notes)
+        note = ClinicalNote(patient_id=patient_id, notes=sanitized_notes)
         db.add(note)
 
     db.commit()

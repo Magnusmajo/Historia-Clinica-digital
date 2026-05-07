@@ -1,119 +1,148 @@
 # Historia Clinica Digital
 
-Sistema full-stack para gestion de pacientes, consultas y planificacion de areas de implante capilar.
+Aplicacion full-stack para gestion clinica de pacientes, agenda, fotos de evolucion, planificacion de areas de implante capilar, usuarios, roles y auditoria.
 
 ## Stack
 
 - Frontend: React, Vite, React Router, Axios
 - Backend: FastAPI, SQLAlchemy, Pydantic
-- Base de datos por defecto: SQLite local
-- Base opcional: PostgreSQL mediante `DATABASE_URL`
+- Base de datos: PostgreSQL
 - Migraciones: Alembic
+- Produccion: Docker Compose, Nginx, Gunicorn/Uvicorn
 
-## Ejecutar backend
+## Variables Requeridas
+
+Backend:
+
+```env
+APP_ENV
+DATABASE_URL
+FRONTEND_ORIGIN
+FRONTEND_ORIGINS
+ALLOWED_HOSTS
+APP_TIMEZONE
+APP_API_KEY
+APP_REQUIRE_API_KEY
+APP_REQUIRE_USER_AUTH
+SECRET_KEY
+ACCESS_TOKEN_MINUTES
+REFRESH_TOKEN_DAYS
+SEED_ADMIN_USER
+DEFAULT_ADMIN_NAME
+DEFAULT_ADMIN_EMAIL
+DEFAULT_ADMIN_PASSWORD
+AUTO_CREATE_TABLES
+COOKIE_SECURE
+COOKIE_SAMESITE
+COOKIE_DOMAIN
+UPLOAD_DIR
+MAX_UPLOAD_MB
+GOOGLE_CALENDAR_ID
+GOOGLE_CREDENTIALS_FILE
+GOOGLE_TOKEN_FILE
+GOOGLE_OAUTH_STATE_FILE
+GOOGLE_REDIRECT_URI
+DB_POOL_SIZE
+DB_MAX_OVERFLOW
+DB_POOL_RECYCLE_SECONDS
+DB_POOL_TIMEOUT_SECONDS
+DB_STATEMENT_TIMEOUT_MS
+DB_CONNECT_TIMEOUT_SECONDS
+RATE_LIMIT_ENABLED
+REDIS_URL
+RATE_LIMIT_REQUESTS
+RATE_LIMIT_WINDOW_SECONDS
+AUTH_RATE_LIMIT_REQUESTS
+LOG_LEVEL
+```
+
+Frontend:
+
+```env
+VITE_API_URL
+VITE_API_KEY
+VITE_CSRF_COOKIE_NAME
+```
+
+Docker Compose tambien requiere:
+
+```env
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+FRONTEND_PORT
+```
+
+## Ejecucion Local
+
+Backend:
 
 ```powershell
 cd project/backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env
+python -m alembic upgrade head
 uvicorn app.main:app --reload
-```
-
-API: `http://localhost:8000`
-
-Documentacion interactiva: `http://localhost:8000/docs`
-
-## Ejecutar frontend
-
-```powershell
-cd project/frontend
-npm install
-copy .env.example .env
-npm run dev
-```
-
-App: `http://localhost:5173`
-
-## Funcionalidad incluida
-
-- Dashboard con metricas reales.
-- Login con usuarios, roles y proteccion por token.
-- Administracion de usuarios y registro de auditoria para administradores.
-- Alta de pacientes.
-- Busqueda y listado de pacientes.
-- Ficha clinica del paciente.
-- Creacion automatica de consulta al guardar un area de implante.
-- Registro de zonas, vista, notas y foliculos estimados.
-- Eliminacion de areas planificadas.
-
-## Variables de entorno
-
-Backend:
-
-```env
-APP_ENV=development
-DATABASE_URL=sqlite:///./historia_clinica.db
-FRONTEND_ORIGIN=http://localhost:5173
-FRONTEND_ORIGINS=
-APP_API_KEY=dev-local-api-key
-APP_REQUIRE_API_KEY=true
-APP_REQUIRE_USER_AUTH=true
-SECRET_KEY=dev-local-secret-change-me
-ACCESS_TOKEN_MINUTES=480
-SEED_ADMIN_USER=true
-DEFAULT_ADMIN_EMAIL=admin@elara.com
-DEFAULT_ADMIN_PASSWORD=Admin12345
-AUTO_CREATE_TABLES=true
 ```
 
 Frontend:
 
-```env
-VITE_API_URL=http://localhost:8000
-VITE_API_KEY=dev-local-api-key
+```powershell
+cd project/frontend
+npm install
+npm run dev
 ```
 
-En desarrollo el frontend puede usar la API key local por defecto; en builds
-productivos define siempre `VITE_API_KEY`.
+## Produccion Con Docker
 
-Para PostgreSQL, usar por ejemplo:
+Usa variables de entorno reales, con secretos generados fuera del repositorio:
 
-```env
-DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/historia_clinica
+```powershell
+docker compose --env-file project/backend/.env up --build -d
 ```
 
-## Seguridad local
+Servicios:
 
-La API exige `X-API-Key` y token Bearer de usuario en las rutas privadas. En
-desarrollo, el frontend envia `VITE_API_KEY` y el login inicial es:
+- Frontend/Nginx: `http://localhost`
+- Backend interno: `backend:8000`
+- PostgreSQL interno: `db:5432`
+- Redis interno: `redis:6379`
 
-```text
-Email: admin@elara.com
-Contrasena: Admin12345
-```
+El backend espera la base de datos, ejecuta `alembic upgrade head` y luego inicia Gunicorn con workers Uvicorn.
 
-En produccion cambia `APP_API_KEY`, `VITE_API_KEY`, `SECRET_KEY` y
-`DEFAULT_ADMIN_PASSWORD` antes de levantar la app. Si `APP_ENV=production`, el
-backend valida esos valores y no arranca con secretos de desarrollo. Usa HTTPS
-si expones el sistema fuera de tu maquina.
+## Verificacion
 
-`AUTO_CREATE_TABLES=true` crea tablas automaticamente para desarrollo. En una
-instalacion real conviene desactivarlo y administrar cambios de esquema con
-migraciones.
-
-## Migraciones
-
-Alembic esta configurado en `project/backend/alembic`. Para crear o actualizar
-la base con migraciones:
+Backend:
 
 ```powershell
 cd project/backend
-.\.venv\Scripts\Activate.ps1
-alembic upgrade head
+python -m pytest
+python -m alembic upgrade head
 ```
 
-Si ya tienes una base creada con `AUTO_CREATE_TABLES=true`, haz backup y marca
-la migracion inicial como aplicada con `alembic stamp head` antes de desactivar
-`AUTO_CREATE_TABLES`.
+Frontend:
+
+```powershell
+cd project/frontend
+npm run lint
+npm run build
+```
+
+Healthchecks:
+
+- `GET /health`
+- `GET /health/ready`
+
+## Seguridad
+
+- PostgreSQL obligatorio fuera de tests.
+- Cookies HttpOnly para access/refresh token.
+- CSRF double-submit para escrituras con cookies.
+- API key obligatoria para rutas privadas.
+- Roles por endpoint.
+- Rate limiting por IP y ruta.
+- Headers de seguridad en backend y Nginx.
+- Uploads clinicos protegidos por sesion, con validacion de extension, MIME, firma binaria y tamano.
+- Auditoria de operaciones de escritura.
+- `AUTO_CREATE_TABLES=false`; el esquema se administra con Alembic.

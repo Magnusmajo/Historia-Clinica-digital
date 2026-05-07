@@ -1,50 +1,45 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { getCurrentUser, login as loginRequest } from "../services/authService";
+import {
+  getCurrentUser,
+  login as loginRequest,
+  logout as logoutRequest,
+} from "../services/authService";
 
 const AuthContext = createContext(null);
 
-const readStoredUser = () => {
-  try {
-    return JSON.parse(window.localStorage.getItem("authUser") || "null");
-  } catch {
-    return null;
-  }
-};
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => window.localStorage.getItem("authToken"));
-  const [user, setUser] = useState(readStoredUser);
-  const [loading, setLoading] = useState(Boolean(token));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const clearSession = () => {
-    window.localStorage.removeItem("authToken");
-    window.localStorage.removeItem("authUser");
-    setToken(null);
+  const clearSession = async ({ remote = false } = {}) => {
+    if (remote) {
+      try {
+        await logoutRequest();
+      } catch {
+        // La limpieza local debe ocurrir aunque el servidor ya haya expirado la sesion.
+      }
+    }
     setUser(null);
     setLoading(false);
   };
 
   useEffect(() => {
-    window.addEventListener("auth:logout", clearSession);
-    return () => window.removeEventListener("auth:logout", clearSession);
+    const onLogout = () => clearSession();
+    window.addEventListener("auth:logout", onLogout);
+    return () => window.removeEventListener("auth:logout", onLogout);
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      return undefined;
-    }
-
     let mounted = true;
     getCurrentUser()
       .then((currentUser) => {
         if (!mounted) return;
         setUser(currentUser);
-        window.localStorage.setItem("authUser", JSON.stringify(currentUser));
       })
       .catch(() => {
-        if (mounted) clearSession();
+        if (mounted) setUser(null);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -53,27 +48,23 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, []);
 
   const login = async (credentials) => {
     const data = await loginRequest(credentials);
-    window.localStorage.setItem("authToken", data.access_token);
-    window.localStorage.setItem("authUser", JSON.stringify(data.user));
-    setToken(data.access_token);
     setUser(data.user);
     return data.user;
   };
 
   const value = useMemo(
     () => ({
-      token,
       user,
       loading,
-      isAuthenticated: Boolean(token && user),
+      isAuthenticated: Boolean(user),
       login,
-      logout: clearSession,
+      logout: () => clearSession({ remote: true }),
     }),
-    [token, user, loading]
+    [user, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

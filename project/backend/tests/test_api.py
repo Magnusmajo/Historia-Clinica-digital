@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 from pathlib import Path
 
@@ -8,12 +8,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 TEST_DB = ROOT / "test_historia_clinica.db"
+os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["APP_API_KEY"] = "test-key"
 os.environ["APP_REQUIRE_API_KEY"] = "true"
-os.environ["SECRET_KEY"] = "test-secret"
+os.environ["SECRET_KEY"] = "test-secret-with-at-least-thirty-two-chars"
 os.environ["DEFAULT_ADMIN_EMAIL"] = "admin@elara.com"
-os.environ["DEFAULT_ADMIN_PASSWORD"] = "Admin12345"
+os.environ["DEFAULT_ADMIN_PASSWORD"] = "TestAdminPassword123!"
 os.environ["AUTO_CREATE_TABLES"] = "true"
 os.environ["GOOGLE_OAUTH_STATE_FILE"] = "test_google_oauth_state"
 
@@ -52,9 +53,9 @@ def test_api_key_is_required_for_private_routes():
 
 def test_production_rejects_insecure_development_defaults(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("APP_API_KEY", "dev-local-api-key")
-    monkeypatch.setenv("SECRET_KEY", "dev-local-secret-change-me")
-    monkeypatch.setenv("DEFAULT_ADMIN_PASSWORD", "Admin12345")
+    monkeypatch.setenv("APP_API_KEY", "short")
+    monkeypatch.setenv("SECRET_KEY", "short")
+    monkeypatch.setenv("DEFAULT_ADMIN_PASSWORD", "short")
     monkeypatch.setenv("AUTO_CREATE_TABLES", "true")
 
     with pytest.raises(RuntimeError, match="Configuracion insegura"):
@@ -65,11 +66,70 @@ def authenticated_headers(client: TestClient):
     response = client.post(
         "/auth/login",
         headers=HEADERS,
-        json={"email": "admin@elara.com", "password": "Admin12345"},
+        json={"email": "admin@elara.com", "password": "TestAdminPassword123!"},
     )
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {**HEADERS, "Authorization": f"Bearer {token}"}
+
+
+def authenticated_cookie_headers(client: TestClient):
+    response = client.post(
+        "/auth/login",
+        headers=HEADERS,
+        json={"email": "admin@elara.com", "password": "TestAdminPassword123!"},
+    )
+    assert response.status_code == 200
+    csrf_token = client.cookies.get("hcd_csrf")
+    assert csrf_token
+    return {**HEADERS, "X-CSRF-Token": csrf_token}
+
+
+def test_cookie_session_requires_csrf_for_writes_and_supports_refresh():
+    with TestClient(app) as client:
+        login_headers = authenticated_cookie_headers(client)
+
+        missing_csrf = client.post(
+            "/patients/",
+            headers=HEADERS,
+            json={"name": "Sin CSRF", "ci": "90000001"},
+        )
+        assert missing_csrf.status_code == 403
+
+        created = client.post(
+            "/patients/",
+            headers=login_headers,
+            json={"name": "Paciente Cookie", "ci": "90000002"},
+        )
+        assert created.status_code == 201
+
+        current_user = client.get("/auth/me", headers=HEADERS)
+        assert current_user.status_code == 200
+
+        refreshed = client.post("/auth/refresh", headers=HEADERS)
+        assert refreshed.status_code == 200
+        assert refreshed.json()["csrf_token"]
+
+
+def test_logout_revokes_existing_tokens():
+    with TestClient(app) as client:
+        auth_headers = authenticated_headers(client)
+        assert client.get("/auth/me", headers=auth_headers).status_code == 200
+
+        logout_response = client.post("/auth/logout", headers=auth_headers)
+        assert logout_response.status_code == 204
+
+        revoked = client.get("/auth/me", headers=auth_headers)
+        assert revoked.status_code == 401
+
+
+def test_security_headers_and_readiness_are_present():
+    with TestClient(app) as client:
+        response = client.get("/health/ready")
+        assert response.status_code == 200
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["x-frame-options"] == "DENY"
+        assert "frame-ancestors" in response.headers["content-security-policy"]
 
 
 def test_patient_validation_and_duplicate_ci():
@@ -173,6 +233,26 @@ def test_photo_upload_rejects_spoofed_content_type():
             headers=auth_headers,
             data={"view": "Frontal"},
             files={"file": ("fake.png", b"not a real image", "image/png")},
+        )
+
+        assert response.status_code == 415
+
+
+def test_photo_upload_rejects_invalid_extension_even_with_image_signature():
+    with TestClient(app) as client:
+        auth_headers = authenticated_headers(client)
+        patient = client.post(
+            "/patients/",
+            headers=auth_headers,
+            json={"name": "Paciente Extension", "ci": "44332211"},
+        ).json()
+
+        png_signature = b"\x89PNG\r\n\x1a\n" + b"0" * 32
+        response = client.post(
+            f"/patients/{patient['id']}/photos/",
+            headers=auth_headers,
+            data={"view": "Frontal"},
+            files={"file": ("fake.txt", png_signature, "image/png")},
         )
 
         assert response.status_code == 415

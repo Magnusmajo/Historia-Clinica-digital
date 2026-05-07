@@ -2,26 +2,22 @@
 
 Interfaz React/Vite para Historia Clinica Digital.
 
+## Variables
+
+```env
+VITE_API_URL
+VITE_API_KEY
+VITE_CSRF_COOKIE_NAME
+```
+
+`VITE_API_URL` apunta al backend directo en desarrollo y a `/api` cuando se sirve desde Nginx en Docker. La sesion usa cookies HttpOnly emitidas por el backend; el frontend solo envia credenciales y el token CSRF.
+
 ## Ejecutar
 
 ```powershell
 npm install
-copy .env.example .env
 npm run dev
 ```
-
-App local: `http://localhost:5173`
-
-## Variables
-
-```env
-VITE_API_URL=http://localhost:8000
-VITE_API_KEY=dev-local-api-key
-```
-
-El valor de `VITE_API_KEY` debe coincidir con `APP_API_KEY` en el backend.
-En desarrollo, si falta `VITE_API_KEY`, la app usa `dev-local-api-key`. En build
-productivo no se inyecta esa clave por defecto.
 
 ## Checks
 
