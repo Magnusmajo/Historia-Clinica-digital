@@ -138,6 +138,20 @@ function initials(name = "") {
     .toUpperCase();
 }
 
+function downloadJsonFile(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function HumanScalpMap({ activeZones, view }) {
   const isSuperior = view === "superior";
 
@@ -330,7 +344,7 @@ export default function PatientDetail() {
   const activeZones = useMemo(() => new Set(zones), [zones]);
   const consultations = useMemo(
     () => patient?.consultations || [],
-    [patient?.consultations]
+    [patient]
   );
   const selectedAreas = useMemo(
     () =>
@@ -459,6 +473,59 @@ export default function PatientDetail() {
     } catch (err) {
       setError(getApiError(err, "No se pudo eliminar la foto"));
     }
+  };
+
+  const exportClinicalDocument = (kind) => {
+    const generatedAt = new Date().toISOString();
+    const base = {
+      generated_at: generatedAt,
+      patient: {
+        id: patient.id,
+        name: patient.name,
+        ci: patient.ci,
+        age: patient.age,
+        sex: patient.sex,
+        phone: patient.phone,
+        email: patient.email,
+        occupation: patient.occupation,
+        city: patient.city,
+      },
+    };
+
+    const documents = {
+      clinical_record: {
+        ...base,
+        clinical_notes: clinicalNotes,
+        consultations,
+        implant_areas: selectedAreas,
+        photos: photos.map(({ id: photoId, view: photoView, taken_at, created_at }) => ({
+          id: photoId,
+          view: photoView,
+          taken_at,
+          created_at,
+        })),
+      },
+      surgical_plan: {
+        ...base,
+        implant_areas: selectedAreas,
+        total_grafts: selectedAreas.reduce((sum, area) => sum + (area.grafts || 0), 0),
+      },
+      photo_index: {
+        ...base,
+        photos: photos.map(({ id: photoId, view: photoView, notes: photoNotes, taken_at, created_at }) => ({
+          id: photoId,
+          view: photoView,
+          notes: photoNotes,
+          taken_at,
+          created_at,
+        })),
+      },
+    };
+
+    downloadJsonFile(
+      `${patient.ci}-${kind}-${generatedAt.slice(0, 10)}.json`,
+      documents[kind]
+    );
   };
 
   if (loading && !patient) {
@@ -672,9 +739,33 @@ export default function PatientDetail() {
               <>
                 <h2>Documentos</h2>
                 <div className="document-list">
-                  <div><strong>Consentimiento informado</strong><span>Pendiente</span></div>
-                  <div><strong>Plan quirurgico</strong><span>Generado desde areas guardadas</span></div>
-                  <div><strong>Ficha clinica</strong><span>Disponible en sistema</span></div>
+                  <div>
+                    <strong>Ficha clinica</strong>
+                    <button
+                      className="secondary-action"
+                      onClick={() => exportClinicalDocument("clinical_record")}
+                    >
+                      Descargar JSON
+                    </button>
+                  </div>
+                  <div>
+                    <strong>Plan quirurgico</strong>
+                    <button
+                      className="secondary-action"
+                      onClick={() => exportClinicalDocument("surgical_plan")}
+                    >
+                      Descargar JSON
+                    </button>
+                  </div>
+                  <div>
+                    <strong>Indice de fotos</strong>
+                    <button
+                      className="secondary-action"
+                      onClick={() => exportClinicalDocument("photo_index")}
+                    >
+                      Descargar JSON
+                    </button>
+                  </div>
                 </div>
               </>
             )}

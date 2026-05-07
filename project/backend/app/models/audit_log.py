@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -19,7 +20,7 @@ class AuditLog(Base):
     status_code = Column(Integer, nullable=True)
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
-    details = Column(JSON, nullable=True)
+    details = Column(JSONB, nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

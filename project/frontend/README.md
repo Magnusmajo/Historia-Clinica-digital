@@ -6,7 +6,6 @@ Interfaz React/Vite para Historia Clinica Digital.
 
 ```env
 VITE_API_URL
-VITE_API_KEY
 VITE_CSRF_COOKIE_NAME
 ```
 

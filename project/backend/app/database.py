@@ -9,26 +9,28 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 DATABASE_URL = settings.database_url
 
-connect_args = {}
 engine_args = {
     "pool_pre_ping": True,
     "pool_recycle": settings.pool_recycle,
+    "pool_timeout": settings.pool_timeout,
+    "pool_size": settings.pool_size,
+    "max_overflow": settings.max_overflow,
+    "pool_use_lifo": True,
+    "hide_parameters": True,
 }
 
 if settings.is_postgres:
+    options = [
+        f"-c statement_timeout={settings.statement_timeout_ms}",
+        "-c idle_in_transaction_session_timeout=30000",
+    ]
+    if settings.db_schema:
+        options.append(f"-c search_path={settings.db_schema}")
     connect_args = {
         "connect_timeout": settings.connect_timeout,
-        "options": f"-c statement_timeout={settings.statement_timeout_ms}",
+        "options": " ".join(options),
+        "application_name": "historia_clinica_digital",
     }
-    engine_args.update(
-        {
-            "pool_size": settings.pool_size,
-            "max_overflow": settings.max_overflow,
-            "pool_timeout": settings.pool_timeout,
-        }
-    )
-elif settings.is_test and DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 else:
     raise RuntimeError("DATABASE_URL debe usar PostgreSQL")
 

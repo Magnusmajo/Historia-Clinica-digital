@@ -53,6 +53,8 @@ REDIS_URL
 RATE_LIMIT_REQUESTS
 RATE_LIMIT_WINDOW_SECONDS
 AUTH_RATE_LIMIT_REQUESTS
+ENABLE_API_DOCS
+DB_SCHEMA
 LOG_LEVEL
 ```
 
@@ -60,7 +62,6 @@ Frontend:
 
 ```env
 VITE_API_URL
-VITE_API_KEY
 VITE_CSRF_COOKIE_NAME
 ```
 
@@ -136,13 +137,13 @@ Healthchecks:
 
 ## Seguridad
 
-- PostgreSQL obligatorio fuera de tests.
+- PostgreSQL obligatorio en runtime y tests.
 - Cookies HttpOnly para access/refresh token.
 - CSRF double-submit para escrituras con cookies.
-- API key obligatoria para rutas privadas.
+- API key obligatoria como barrera de API para clientes sin sesion; no se expone al navegador.
 - Roles por endpoint.
 - Rate limiting por IP y ruta.
 - Headers de seguridad en backend y Nginx.
-- Uploads clinicos protegidos por sesion, con validacion de extension, MIME, firma binaria y tamano.
+- Uploads clinicos protegidos por endpoint autorizado, con validacion de extension, MIME, firma binaria y tamano.
 - Auditoria de operaciones de escritura.
 - `AUTO_CREATE_TABLES=false`; el esquema se administra con Alembic.

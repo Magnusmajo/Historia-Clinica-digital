@@ -13,6 +13,7 @@ project/backend/credentials.json
 project/backend/token.json
 project/backend/.google_oauth_state
 project/backend/uploads/
+project/uploads/
 
 node_modules/
 .npm-cache/

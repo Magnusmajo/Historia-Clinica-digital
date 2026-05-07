@@ -1,46 +1,195 @@
-﻿import os
+﻿import atexit
+import os
+import re
+import socket
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-TEST_DB = ROOT / "test_historia_clinica.db"
+load_dotenv(ROOT / ".env")
+
+POSTGRES_PROCESS = None
+POSTGRES_DATA_DIR = None
+
+
+def find_postgres_binary(name: str) -> Path:
+    candidates = []
+    path_value = os.getenv("POSTGRES_BIN_DIR")
+    if path_value:
+        candidates.append(Path(path_value) / name)
+    candidates.extend(
+        [
+            Path(r"C:\Program Files\PostgreSQL\18\bin") / name,
+            Path(r"C:\Program Files\PostgreSQL\17\bin") / name,
+            Path(r"C:\Program Files\PostgreSQL\16\bin") / name,
+        ]
+    )
+    for path in os.getenv("PATH", "").split(os.pathsep):
+        if path:
+            candidates.append(Path(path) / name)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise RuntimeError(
+        "No se encontraron binarios PostgreSQL. Define TEST_DATABASE_URL o POSTGRES_BIN_DIR."
+    )
+
+
+def allocate_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def start_ephemeral_postgres() -> str:
+    global POSTGRES_PROCESS, POSTGRES_DATA_DIR
+
+    initdb = find_postgres_binary("initdb.exe" if os.name == "nt" else "initdb")
+    pg_ctl = find_postgres_binary("pg_ctl.exe" if os.name == "nt" else "pg_ctl")
+    POSTGRES_DATA_DIR = tempfile.TemporaryDirectory(prefix="hcd-postgres-")
+    data_dir = Path(POSTGRES_DATA_DIR.name)
+    port = allocate_port()
+
+    subprocess.run(
+        [
+            str(initdb),
+            "-D",
+            str(data_dir),
+            "-A",
+            "trust",
+            "-U",
+            "hcd_test",
+            "--encoding=UTF8",
+            "--locale=C",
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    subprocess.run(
+        [
+            str(pg_ctl),
+            "-D",
+            str(data_dir),
+            "-o",
+            f"-F -p {port} -h 127.0.0.1",
+            "-w",
+            "start",
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    POSTGRES_PROCESS = (pg_ctl, data_dir)
+    return f"postgresql+psycopg2://hcd_test@127.0.0.1:{port}/postgres"
+
+
+def stop_ephemeral_postgres():
+    global POSTGRES_PROCESS, POSTGRES_DATA_DIR
+
+    if POSTGRES_PROCESS:
+        pg_ctl, data_dir = POSTGRES_PROCESS
+        subprocess.run(
+            [str(pg_ctl), "-D", str(data_dir), "-m", "fast", "-w", "stop"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            text=True,
+        )
+        POSTGRES_PROCESS = None
+    if POSTGRES_DATA_DIR:
+        POSTGRES_DATA_DIR.cleanup()
+        POSTGRES_DATA_DIR = None
+
+
+atexit.register(stop_ephemeral_postgres)
+
+TEST_SCHEMA = os.getenv("TEST_DB_SCHEMA", "hcd_test")
+DATABASE_URL = os.getenv("TEST_DATABASE_URL") or start_ephemeral_postgres()
+if not DATABASE_URL.startswith(("postgresql://", "postgresql+psycopg2://")):
+    raise RuntimeError("Los tests requieren TEST_DATABASE_URL o DATABASE_URL PostgreSQL")
+if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,62}", TEST_SCHEMA):
+    raise RuntimeError("TEST_DB_SCHEMA debe ser un identificador PostgreSQL valido")
+
 os.environ["APP_ENV"] = "test"
-os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
-os.environ["APP_API_KEY"] = "test-key"
+os.environ["DATABASE_URL"] = DATABASE_URL
+os.environ["DB_SCHEMA"] = TEST_SCHEMA
+os.environ["APP_API_KEY"] = "test-key-with-production-length"
 os.environ["APP_REQUIRE_API_KEY"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-with-at-least-thirty-two-chars"
 os.environ["DEFAULT_ADMIN_EMAIL"] = "admin@elara.com"
 os.environ["DEFAULT_ADMIN_PASSWORD"] = "TestAdminPassword123!"
-os.environ["AUTO_CREATE_TABLES"] = "true"
+os.environ["AUTO_CREATE_TABLES"] = "false"
 os.environ["GOOGLE_OAUTH_STATE_FILE"] = "test_google_oauth_state"
+os.environ["ENABLE_API_DOCS"] = "false"
+os.environ["UPLOAD_DIR"] = str(ROOT / "test_uploads")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.config import Settings  # noqa: E402
-from app.database import Base, engine  # noqa: E402
+from app.database import engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.bootstrap import ensure_default_admin  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 
-HEADERS = {"X-API-Key": "test-key"}
+HEADERS = {"X-API-Key": "test-key-with-production-length"}
+
+
+def reset_test_schema():
+    admin_engine = create_engine(
+        DATABASE_URL,
+        isolation_level="AUTOCOMMIT",
+        hide_parameters=True,
+    )
+    try:
+        with admin_engine.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA IF EXISTS "{TEST_SCHEMA}" CASCADE'))
+            connection.execute(text(f'CREATE SCHEMA "{TEST_SCHEMA}"'))
+    finally:
+        admin_engine.dispose()
+
+
+def run_migrations():
+    alembic_config = Config(str(ROOT / "alembic.ini"))
+    alembic_config.set_main_option("script_location", str(ROOT / "alembic"))
+    command.upgrade(alembic_config, "head")
 
 
 def setup_function():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    reset_test_schema()
+    engine.dispose()
+    run_migrations()
     with SessionLocal() as db:
         ensure_default_admin(db)
 
 
 def teardown_module():
-    Base.metadata.drop_all(bind=engine)
     engine.dispose()
-    TEST_DB.unlink(missing_ok=True)
+    reset_test_schema()
+    engine.dispose()
+    stop_ephemeral_postgres()
     (ROOT / "test_google_oauth_state").unlink(missing_ok=True)
+    upload_dir = ROOT / "test_uploads"
+    if upload_dir.exists():
+        for path in sorted(upload_dir.rglob("*"), reverse=True):
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+        upload_dir.rmdir()
 
 
 def test_api_key_is_required_for_private_routes():
@@ -256,6 +405,35 @@ def test_photo_upload_rejects_invalid_extension_even_with_image_signature():
         )
 
         assert response.status_code == 415
+
+
+def test_photo_file_requires_authenticated_session_and_existing_record():
+    png_signature = b"\x89PNG\r\n\x1a\n" + b"0" * 32
+
+    with TestClient(app) as client:
+        auth_headers = authenticated_headers(client)
+        patient = client.post(
+            "/patients/",
+            headers=auth_headers,
+            json={"name": "Paciente Foto Protegida", "ci": "11992288"},
+        ).json()
+        created = client.post(
+            f"/patients/{patient['id']}/photos/",
+            headers=auth_headers,
+            data={"view": "Frontal"},
+            files={"file": ("foto.png", png_signature, "image/png")},
+        )
+
+        assert created.status_code == 201
+        photo = created.json()
+
+        anonymous = TestClient(app)
+        missing_auth = anonymous.get(photo["url"])
+        assert missing_auth.status_code == 401
+
+        file_response = client.get(photo["url"], headers=HEADERS)
+        assert file_response.status_code == 200
+        assert file_response.headers["content-type"].startswith("image/png")
 
 
 def test_admin_can_manage_users_and_read_audit_logs():

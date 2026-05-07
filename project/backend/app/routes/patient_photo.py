@@ -3,8 +3,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from zoneinfo import ZoneInfo
 
 from app.config import get_settings
@@ -26,6 +28,11 @@ WRITE_ROLES = (ROLE_ADMIN, ROLE_DOCTOR, ROLE_STAFF)
 
 router = APIRouter(
     prefix="/patients/{patient_id}/photos",
+    tags=["patient-photos"],
+    dependencies=[Depends(require_roles(*READ_ROLES))],
+)
+uploads_router = APIRouter(
+    prefix="/uploads/patients",
     tags=["patient-photos"],
     dependencies=[Depends(require_roles(*READ_ROLES))],
 )
@@ -93,7 +100,7 @@ async def read_limited_file(file: UploadFile):
         if size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="La foto supera el limite de 12 MB",
+                detail=f"La foto supera el limite de {settings.max_upload_mb} MB",
             )
         chunks.append(chunk)
 
@@ -132,6 +139,28 @@ def validate_original_extension(filename: str | None):
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="Extension no permitida. Usa JPG, PNG o WebP.",
         )
+
+
+def build_photo_file_response(patient_id: int, filename: str, db: Session):
+    photo = (
+        db.query(PatientPhoto)
+        .filter(PatientPhoto.patient_id == patient_id, PatientPhoto.filename == filename)
+        .first()
+    )
+
+    if not photo:
+        raise HTTPException(status_code=404, detail="Foto no encontrada")
+
+    path = safe_upload_path(photo.file_path)
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+    return FileResponse(
+        path,
+        media_type=photo.content_type,
+        filename=photo.original_filename,
+        headers={"Cache-Control": "private, no-store"},
+    )
 
 
 @router.get("/", response_model=list[PatientPhotoRead])
@@ -177,7 +206,7 @@ async def upload_patient_photo(
 
     filename = f"{uuid4().hex}{extension}"
     file_path = patient_dir / filename
-    file_path.write_bytes(content)
+    await run_in_threadpool(file_path.write_bytes, content)
 
     relative_path = file_path.relative_to(settings.upload_dir).as_posix()
     photo = PatientPhoto(
@@ -201,6 +230,24 @@ async def upload_patient_photo(
 
     db.refresh(photo)
     return photo
+
+
+@router.get("/{filename}", response_class=FileResponse)
+def get_patient_photo_file(
+    patient_id: int,
+    filename: str,
+    db: Session = Depends(get_db),
+):
+    return build_photo_file_response(patient_id, filename, db)
+
+
+@uploads_router.get("/{patient_id}/{filename}", response_class=FileResponse)
+def get_legacy_patient_photo_file(
+    patient_id: int,
+    filename: str,
+    db: Session = Depends(get_db),
+):
+    return build_photo_file_response(patient_id, filename, db)
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)

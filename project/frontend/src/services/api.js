@@ -1,13 +1,11 @@
 import axios from "axios";
 
-const apiKey = import.meta.env.VITE_API_KEY || "";
 const csrfCookieName = import.meta.env.VITE_CSRF_COOKIE_NAME || "hcd_csrf";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
   timeout: 10000,
   withCredentials: true,
-  headers: apiKey ? { "X-API-Key": apiKey } : {},
 });
 
 let refreshPromise = null;

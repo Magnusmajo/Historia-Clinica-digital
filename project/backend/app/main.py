@@ -5,7 +5,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import Base, SessionLocal, check_database, engine
@@ -51,17 +50,27 @@ if settings.auto_create_tables:
 
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="Historia Clinica Digital", version="1.0.0")
+app = FastAPI(
+    title="Historia Clinica Digital",
+    version="1.0.0",
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None,
+    openapi_url="/openapi.json" if settings.docs_enabled else None,
+)
 register_exception_handlers(app)
 rate_limiter = RateLimiter()
 
 PUBLIC_PATHS = {
     "/health",
     "/health/ready",
-    "/openapi.json",
+    "/auth/login",
+    "/auth/refresh",
+    "/auth/logout",
     "/google-calendar/callback",
 }
-PUBLIC_PATH_PREFIXES = ("/docs", "/redoc")
+if settings.docs_enabled:
+    PUBLIC_PATHS.add("/openapi.json")
+PUBLIC_PATH_PREFIXES = ("/docs", "/redoc") if settings.docs_enabled else ()
 AUDITED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_EXEMPT_PATHS = {
@@ -156,6 +165,10 @@ def _csrf_is_valid(request: Request):
     return bool(csrf_cookie and csrf_header and compare_digest(csrf_cookie, csrf_header))
 
 
+def _has_valid_access_token(request: Request):
+    return bool(decode_access_token(extract_access_token(request) or ""))
+
+
 @app.middleware("http")
 async def require_api_key(request: Request, call_next):
     is_public_path = request.url.path in PUBLIC_PATHS or request.url.path.startswith(
@@ -170,7 +183,12 @@ async def require_api_key(request: Request, call_next):
             JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}),
         )
 
-    if settings.require_api_key and request.method != "OPTIONS" and not is_public_path:
+    if (
+        settings.require_api_key
+        and request.method != "OPTIONS"
+        and not is_public_path
+        and not _has_valid_access_token(request)
+    ):
         provided_key = request.headers.get("x-api-key", "")
         if not provided_key or not compare_digest(provided_key, settings.api_key):
             _audit_request(request, 401)
@@ -195,7 +213,7 @@ async def require_api_key(request: Request, call_next):
     if (
         settings.require_user_auth
         and request.url.path.startswith("/uploads")
-        and not decode_access_token(extract_access_token(request) or "")
+        and not _has_valid_access_token(request)
     ):
         _audit_request(request, 401)
         return _add_security_headers(
@@ -218,13 +236,19 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.frontend_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "X-CSRF-Token",
+    ],
 )
 
 app.include_router(auth.router)
 app.include_router(patient.router)
 app.include_router(patient_photo.router)
+app.include_router(patient_photo.uploads_router)
 app.include_router(appointment.router)
 app.include_router(consultation.router)
 app.include_router(implant_area.router)
@@ -233,8 +257,6 @@ app.include_router(clinical_note.router)
 app.include_router(google_calendar.router)
 app.include_router(stats.router)
 app.include_router(audit_log.router)
-
-app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/health")

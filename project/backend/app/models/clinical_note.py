@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -12,7 +13,7 @@ class ClinicalNote(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    notes = Column(JSON, nullable=False, default=dict)
+    notes = Column(JSONB, nullable=False, default=dict)
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

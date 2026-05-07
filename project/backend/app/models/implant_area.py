@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, ForeignKey, JSON
+from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -13,7 +14,7 @@ class ImplantArea(Base):
         nullable=False,
         index=True,
     )
-    drawing_data = Column(JSON)
+    drawing_data = Column(JSONB)
     grafts = Column(Integer, default=0)
 
     consultation = relationship("Consultation", back_populates="implant_areas")

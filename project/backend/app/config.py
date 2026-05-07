@@ -1,4 +1,5 @@
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -16,6 +17,7 @@ SAFE_LOCAL_ORIGINS = (
     "http://localhost",
     "http://127.0.0.1",
 )
+POSTGRES_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
 
 
 def _get_bool(name: str, default: bool) -> bool:
@@ -107,6 +109,7 @@ class Settings:
         self.auto_create_tables = _get_bool("AUTO_CREATE_TABLES", False)
         self.upload_dir = _resolve_path(os.getenv("UPLOAD_DIR", "uploads"))
         self.max_upload_mb = _get_int("MAX_UPLOAD_MB", 12, minimum=1)
+        self.docs_enabled = _get_bool("ENABLE_API_DOCS", not self.is_production)
         self.google_calendar_id = os.getenv("GOOGLE_CALENDAR_ID", "primary")
         self.google_credentials_file = str(
             _resolve_path(os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json"))
@@ -150,6 +153,7 @@ class Settings:
             minimum=1000,
         )
         self.connect_timeout = _get_int("DB_CONNECT_TIMEOUT_SECONDS", 5, minimum=1)
+        self.db_schema = os.getenv("DB_SCHEMA", "").strip() or None
         self.log_level = os.getenv("LOG_LEVEL", "INFO").strip().upper()
 
     @property
@@ -173,7 +177,7 @@ class Settings:
 
         if not self.database_url:
             errors.append("DATABASE_URL es obligatorio")
-        elif not self.is_postgres and not self.is_test:
+        elif not self.is_postgres:
             errors.append("DATABASE_URL debe usar PostgreSQL")
         if self.cookie_samesite not in {"lax", "strict", "none"}:
             errors.append("COOKIE_SAMESITE debe ser lax, strict o none")
@@ -181,6 +185,8 @@ class Settings:
             errors.append("COOKIE_SECURE debe ser true cuando COOKIE_SAMESITE=none")
         if self.require_api_key and not self.api_key:
             errors.append("APP_API_KEY es obligatorio")
+        if self.is_production and not self.require_api_key:
+            errors.append("APP_REQUIRE_API_KEY debe ser true en produccion")
         if self.require_api_key and len(self.api_key) < 24 and self.is_production:
             errors.append("APP_API_KEY debe tener al menos 24 caracteres en produccion")
         if self.require_user_auth and len(self.secret_key) < 32:
@@ -192,6 +198,10 @@ class Settings:
         if self.is_production:
             if not self.allowed_hosts:
                 errors.append("ALLOWED_HOSTS es obligatorio en produccion")
+            if self.docs_enabled:
+                errors.append("ENABLE_API_DOCS debe ser false en produccion")
+        if self.db_schema and not POSTGRES_IDENTIFIER_PATTERN.fullmatch(self.db_schema):
+            errors.append("DB_SCHEMA debe ser un identificador PostgreSQL valido")
 
         if errors:
             raise RuntimeError("Configuracion insegura: " + "; ".join(errors))

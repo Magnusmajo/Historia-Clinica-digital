@@ -7,6 +7,7 @@ Create Date: 2026-05-02 00:00:00.000000
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision = "0001_initial_schema"
 down_revision = None
@@ -27,10 +28,9 @@ def upgrade():
         sa.Column("occupation", sa.String(), nullable=True),
         sa.Column("city", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("ci"),
     )
     op.create_index(op.f("ix_patients_id"), "patients", ["id"], unique=False)
-    op.create_index(op.f("ix_patients_ci"), "patients", ["ci"], unique=False)
+    op.create_index(op.f("ix_patients_ci"), "patients", ["ci"], unique=True)
 
     op.create_table(
         "users",
@@ -45,10 +45,9 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("email"),
     )
     op.create_index(op.f("ix_users_id"), "users", ["id"], unique=False)
-    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=False)
+    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
 
     op.create_table(
         "appointments",
@@ -100,7 +99,7 @@ def upgrade():
         sa.Column("status_code", sa.Integer(), nullable=True),
         sa.Column("ip_address", sa.String(), nullable=True),
         sa.Column("user_agent", sa.String(), nullable=True),
-        sa.Column("details", sa.JSON(), nullable=True),
+        sa.Column("details", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
@@ -120,7 +119,7 @@ def upgrade():
         "clinical_notes",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("patient_id", sa.Integer(), nullable=False),
-        sa.Column("notes", sa.JSON(), nullable=False),
+        sa.Column("notes", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.PrimaryKeyConstraint("id"),
@@ -154,7 +153,7 @@ def upgrade():
         "module_records",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("module", sa.String(), nullable=False),
-        sa.Column("payload", sa.JSON(), nullable=False),
+        sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -207,7 +206,7 @@ def upgrade():
         "implant_areas",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("consultation_id", sa.Integer(), nullable=False),
-        sa.Column("drawing_data", sa.JSON(), nullable=True),
+        sa.Column("drawing_data", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("grafts", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["consultation_id"], ["consultations.id"]),
         sa.PrimaryKeyConstraint("id"),

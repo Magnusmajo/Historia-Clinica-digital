@@ -7,6 +7,7 @@ __pycache__
 *.pyo
 *.db
 uploads
+../uploads
 credentials.json
 token.json
 .google_oauth_state

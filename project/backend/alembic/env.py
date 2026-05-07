@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from app.config import get_settings
 from app.database import Base
@@ -28,6 +28,21 @@ def get_url():
     return get_settings().database_url
 
 
+def get_connect_args():
+    settings = get_settings()
+    options = [
+        f"-c statement_timeout={settings.statement_timeout_ms}",
+        "-c idle_in_transaction_session_timeout=30000",
+    ]
+    if settings.db_schema:
+        options.append(f"-c search_path={settings.db_schema}")
+    return {
+        "connect_timeout": settings.connect_timeout,
+        "options": " ".join(options),
+        "application_name": "historia_clinica_migrations",
+    }
+
+
 def run_migrations_offline():
     context.configure(
         url=get_url(),
@@ -41,11 +56,10 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = get_url()
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        get_url(),
+        connect_args=get_connect_args(),
+        hide_parameters=True,
         poolclass=pool.NullPool,
     )
 
