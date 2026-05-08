@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -164,12 +164,19 @@ def build_photo_file_response(patient_id: int, filename: str, db: Session):
 
 
 @router.get("/", response_model=list[PatientPhotoRead])
-def get_patient_photos(patient_id: int, db: Session = Depends(get_db)):
+def get_patient_photos(
+    patient_id: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
     ensure_patient(patient_id, db)
     return (
         db.query(PatientPhoto)
         .filter(PatientPhoto.patient_id == patient_id)
         .order_by(PatientPhoto.taken_at.desc().nullslast(), PatientPhoto.created_at.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

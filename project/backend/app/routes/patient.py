@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -47,14 +47,19 @@ def create_patient(
 
 
 @router.get("/", response_model=list[PatientRead])
-def get_patients(search: str | None = None, db: Session = Depends(get_db)):
+def get_patients(
+    search: str | None = Query(default=None, max_length=140),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
     query = db.query(Patient).order_by(Patient.name.asc())
 
     if search:
         term = f"%{search.strip()}%"
         query = query.filter((Patient.name.ilike(term)) | (Patient.ci.ilike(term)))
 
-    return query.all()
+    return query.offset(offset).limit(limit).all()
 
 
 @router.get("/{patient_id}", response_model=PatientDetail)

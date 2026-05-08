@@ -44,7 +44,7 @@ def google_calendar_callback(request: Request):
 
     return """
     <html>
-      <body style="font-family: system-ui; padding: 32px;">
+      <body>
         <h2>Google Calendar conectado</h2>
         <p>Ya puedes cerrar esta ventana y volver a Historia Clinica Digital.</p>
       </body>

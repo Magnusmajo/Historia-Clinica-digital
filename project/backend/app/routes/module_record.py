@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -42,12 +42,19 @@ def validate_module(module: str):
 
 
 @router.get("/{module}/records", response_model=list[ModuleRecordRead])
-def get_module_records(module: str, db: Session = Depends(get_db)):
+def get_module_records(
+    module: str,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
     validate_module(module)
     return (
         db.query(ModuleRecord)
         .filter(ModuleRecord.module == module)
         .order_by(ModuleRecord.created_at.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

@@ -26,7 +26,6 @@ from app.routes import (
 )
 from app.security import decode_access_token, extract_access_token, extract_bearer_token
 
-# Importar modelos explicitamente para crear tablas en desarrollo.
 from app.models.audit_log import AuditLog
 from app.models.appointment import Appointment
 from app.models.consultation import Consultation
@@ -138,8 +137,8 @@ def _add_security_headers(request: Request, response):
     )
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' "
-        "'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; "
+        "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; "
+        "script-src 'self'; object-src 'none'; "
         "frame-ancestors 'none'; base-uri 'self'",
     )
     if settings.is_production:

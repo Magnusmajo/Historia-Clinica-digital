@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 from zoneinfo import ZoneInfo
 
@@ -76,11 +76,17 @@ def try_sync_google(appointment: Appointment):
 
 
 @router.get("/", response_model=list[AppointmentRead])
-def get_appointments(db: Session = Depends(get_db)):
+def get_appointments(
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
     return (
         db.query(Appointment)
         .options(joinedload(Appointment.patient))
         .order_by(Appointment.starts_at.asc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 
