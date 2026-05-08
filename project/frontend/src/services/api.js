@@ -11,10 +11,10 @@ export const api = axios.create({
 let refreshPromise = null;
 
 function readCookie(name) {
-  const cookie = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`));
-  return cookie ? cookie.split("=").slice(1).join("=") : "";
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${name}=([^;]*)`)
+  );
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 function formatApiDetail(detail) {

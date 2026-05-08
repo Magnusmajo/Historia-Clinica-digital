@@ -166,7 +166,7 @@ class Settings:
 
     @property
     def is_postgres(self) -> bool:
-        return self.database_url.startswith(("postgresql://", "postgresql+psycopg2://"))
+        return self.database_url.startswith(("postgres://", "postgresql://", "postgresql+psycopg2://"))
 
     @property
     def safe_database_url(self) -> str:
