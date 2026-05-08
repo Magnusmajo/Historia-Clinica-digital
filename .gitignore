@@ -12,6 +12,8 @@ project/backend/*.db
 project/backend/credentials.json
 project/backend/token.json
 project/backend/.google_oauth_state
+project/backend/.pgdata/
+project/backend/.pglog
 project/backend/uploads/
 project/uploads/
 
